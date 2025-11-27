@@ -52,6 +52,38 @@ export function Header() {
             </DropdownMenuContent>
           </DropdownMenu>
 
+          {/* Demo pages dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="flex items-center gap-1">
+                Demo
+                <ChevronDown className="h-4 w-4" aria-hidden="true" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-48">
+              <DropdownMenuItem asChild>
+                <Link href="/mine-sider">Min side (kunde)</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/mine-sider/bestillinger">Mine bestillinger</Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link href="/leverandor-portal">Leverandørportal</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/leverandor-portal/oppdrag">Oppdrag</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/leverandor-portal/kalender">Kalender</Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link href="/admin">Admin panel</Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           <Link href="/bli-leverandor">
             <Button variant="ghost">Bli leverandør</Button>
           </Link>
@@ -117,6 +149,44 @@ export function Header() {
           >
             Bli leverandør
           </Link>
+          <div className="border-t pt-4 mt-4">
+            <p className="px-3 py-1 text-xs font-semibold text-muted-foreground uppercase">Demo</p>
+            <Link
+              href="/mine-sider"
+              className="block rounded-md px-3 py-2 text-sm hover:bg-accent"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Min side (kunde)
+            </Link>
+            <Link
+              href="/mine-sider/bestillinger"
+              className="block rounded-md px-3 py-2 text-sm hover:bg-accent"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Mine bestillinger
+            </Link>
+            <Link
+              href="/leverandor-portal"
+              className="block rounded-md px-3 py-2 text-sm hover:bg-accent"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Leverandørportal
+            </Link>
+            <Link
+              href="/leverandor-portal/oppdrag"
+              className="block rounded-md px-3 py-2 text-sm hover:bg-accent"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Oppdrag
+            </Link>
+            <Link
+              href="/admin"
+              className="block rounded-md px-3 py-2 text-sm hover:bg-accent"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Admin panel
+            </Link>
+          </div>
           <div className="border-t pt-4 mt-4">
             <Link
               href="/logg-inn"
