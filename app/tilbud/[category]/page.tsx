@@ -1,14 +1,28 @@
 "use client";
 
-import { useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useState, useMemo } from "react";
+import { useParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Send, Upload, X, Info } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Send,
+  Upload,
+  Info,
+  CheckCircle,
+  FileCheck,
+  Shield,
+  Star,
+  Filter,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Select,
   SelectContent,
@@ -16,18 +30,32 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Rating } from "@/components/common/Rating";
 import { categories } from "@/lib/data/categories";
+import { getProvidersByCategory } from "@/lib/data/providers";
 import { getQuestionsForCategory } from "@/lib/data/quote-questions";
-import { QuoteQuestion } from "@/types";
+import { QuoteQuestion, ServiceProvider } from "@/types";
+
+type Step = "details" | "providers" | "submitted";
+
+interface Preferences {
+  requireVerified: boolean;
+  requirePoliceCheck: boolean;
+  requireInsurance: boolean;
+  minRating: number;
+  minExperience: number;
+}
 
 export default function QuoteRequestPage() {
   const params = useParams();
-  const router = useRouter();
   const categoryId = params.category as string;
 
   const category = categories.find((c) => c.id === categoryId);
   const questions = getQuestionsForCategory(categoryId);
+  const allProviders = getProvidersByCategory(categoryId);
 
+  // Form state
+  const [step, setStep] = useState<Step>("details");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [answers, setAnswers] = useState<Record<string, string | number>>({});
@@ -37,8 +65,29 @@ export default function QuoteRequestPage() {
     city: "",
   });
   const [preferredDate, setPreferredDate] = useState("");
+
+  // Provider selection state
+  const [preferences, setPreferences] = useState<Preferences>({
+    requireVerified: false,
+    requirePoliceCheck: false,
+    requireInsurance: false,
+    minRating: 0,
+    minExperience: 0,
+  });
+  const [selectedProviders, setSelectedProviders] = useState<Set<string>>(new Set());
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
+
+  // Filter providers based on preferences
+  const filteredProviders = useMemo(() => {
+    return allProviders.filter((provider) => {
+      if (preferences.requireVerified && !provider.verified) return false;
+      if (preferences.requirePoliceCheck && !provider.policeCheck) return false;
+      if (preferences.requireInsurance && !provider.insurance) return false;
+      if (preferences.minRating > 0 && provider.rating < preferences.minRating) return false;
+      if (preferences.minExperience > 0 && provider.yearsExperience < preferences.minExperience) return false;
+      return true;
+    });
+  }, [allProviders, preferences]);
 
   if (!category) {
     return (
@@ -55,52 +104,40 @@ export default function QuoteRequestPage() {
     setAnswers((prev) => ({ ...prev, [questionId]: value }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-
-    setIsSubmitting(false);
-    setSubmitted(true);
+  const handleProviderToggle = (providerId: string) => {
+    setSelectedProviders((prev) => {
+      const next = new Set(prev);
+      if (next.has(providerId)) {
+        next.delete(providerId);
+      } else {
+        next.add(providerId);
+      }
+      return next;
+    });
   };
 
-  if (submitted) {
-    return (
-      <div className="container mx-auto px-4 py-16">
-        <Card className="max-w-2xl mx-auto">
-          <CardContent className="pt-6 text-center">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Send className="h-8 w-8 text-green-600" />
-            </div>
-            <h1 className="text-2xl font-bold mb-2">Forespørsel sendt!</h1>
-            <p className="text-muted-foreground mb-6">
-              Din forespørsel er sendt til leverandører i ditt område. Du vil motta tilbud
-              i løpet av kort tid.
-            </p>
-            <div className="bg-muted/50 rounded-lg p-4 mb-6 text-left">
-              <h3 className="font-medium mb-2">Hva skjer nå?</h3>
-              <ul className="text-sm text-muted-foreground space-y-1">
-                <li>• Leverandører i ditt område ser forespørselen din</li>
-                <li>• De som er interesserte sender deg et tilbud med pris</li>
-                <li>• Du kan sammenligne tilbud og velge den beste</li>
-                <li>• Forespørselen er gyldig i 7 dager</li>
-              </ul>
-            </div>
-            <div className="flex gap-3 justify-center">
-              <Link href="/mine-sider/tilbud">
-                <Button>Se mine forespørsler</Button>
-              </Link>
-              <Link href="/">
-                <Button variant="outline">Til forsiden</Button>
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  const handleSelectAll = () => {
+    if (selectedProviders.size === filteredProviders.length) {
+      setSelectedProviders(new Set());
+    } else {
+      setSelectedProviders(new Set(filteredProviders.map((p) => p.userId)));
+    }
+  };
+
+  const handleNextStep = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Pre-select all filtered providers
+    setSelectedProviders(new Set(filteredProviders.map((p) => p.userId)));
+    setStep("providers");
+  };
+
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
+    // Simulate API call
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    setIsSubmitting(false);
+    setStep("submitted");
+  };
 
   const renderQuestion = (question: QuoteQuestion) => {
     switch (question.type) {
@@ -186,10 +223,245 @@ export default function QuoteRequestPage() {
     }
   };
 
+  // Step indicator
+  const StepIndicator = () => (
+    <div className="flex items-center justify-center gap-2 mb-6">
+      <div className={`flex items-center gap-2 ${step === "details" ? "text-primary" : "text-muted-foreground"}`}>
+        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+          step === "details" ? "bg-primary text-primary-foreground" :
+          step === "providers" || step === "submitted" ? "bg-green-100 text-green-700" : "bg-muted"
+        }`}>
+          {step === "providers" || step === "submitted" ? <CheckCircle className="h-5 w-5" /> : "1"}
+        </div>
+        <span className="text-sm font-medium hidden sm:inline">Beskriv jobben</span>
+      </div>
+      <div className="w-8 h-px bg-border" />
+      <div className={`flex items-center gap-2 ${step === "providers" ? "text-primary" : "text-muted-foreground"}`}>
+        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+          step === "providers" ? "bg-primary text-primary-foreground" :
+          step === "submitted" ? "bg-green-100 text-green-700" : "bg-muted"
+        }`}>
+          {step === "submitted" ? <CheckCircle className="h-5 w-5" /> : "2"}
+        </div>
+        <span className="text-sm font-medium hidden sm:inline">Velg leverandører</span>
+      </div>
+    </div>
+  );
+
+  // Submitted state
+  if (step === "submitted") {
+    return (
+      <div className="container mx-auto px-4 py-16">
+        <Card className="max-w-2xl mx-auto">
+          <CardContent className="pt-6 text-center">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Send className="h-8 w-8 text-green-600" />
+            </div>
+            <h1 className="text-2xl font-bold mb-2">Forespørsel sendt!</h1>
+            <p className="text-muted-foreground mb-6">
+              Din forespørsel er sendt til {selectedProviders.size} utvalgte leverandører.
+            </p>
+            <div className="bg-muted/50 rounded-lg p-4 mb-6 text-left">
+              <h3 className="font-medium mb-2">Hva skjer nå?</h3>
+              <ul className="text-sm text-muted-foreground space-y-1">
+                <li>• De {selectedProviders.size} leverandørene du valgte mottar forespørselen</li>
+                <li>• Interesserte leverandører sender deg et tilbud med pris</li>
+                <li>• Du kan sammenligne tilbud og velge den beste</li>
+                <li>• Forespørselen er gyldig i 7 dager</li>
+              </ul>
+            </div>
+            <div className="flex gap-3 justify-center">
+              <Link href="/mine-sider/tilbud">
+                <Button>Se mine forespørsler</Button>
+              </Link>
+              <Link href="/">
+                <Button variant="outline">Til forsiden</Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Provider selection step
+  if (step === "providers") {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-4xl mx-auto">
+          <button
+            onClick={() => setStep("details")}
+            className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-6"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Tilbake til jobbdetaljer
+          </button>
+
+          <StepIndicator />
+
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-3">
+                <Filter className="h-5 w-5" />
+                Velg hvem som skal motta forespørselen
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Sett krav og velg hvilke leverandører du vil sende forespørselen til
+              </p>
+            </CardHeader>
+            <CardContent>
+              {/* Preferences/Filters */}
+              <div className="bg-muted/50 rounded-lg p-4 mb-6">
+                <h3 className="font-medium mb-3 flex items-center gap-2">
+                  <Shield className="h-4 w-4" />
+                  Kvalitetskrav
+                </h3>
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="verified"
+                      checked={preferences.requireVerified}
+                      onCheckedChange={(checked) =>
+                        setPreferences({ ...preferences, requireVerified: checked as boolean })
+                      }
+                    />
+                    <Label htmlFor="verified" className="text-sm font-normal flex items-center gap-1">
+                      <CheckCircle className="h-3.5 w-3.5 text-blue-600" />
+                      Kun verifiserte
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="policeCheck"
+                      checked={preferences.requirePoliceCheck}
+                      onCheckedChange={(checked) =>
+                        setPreferences({ ...preferences, requirePoliceCheck: checked as boolean })
+                      }
+                    />
+                    <Label htmlFor="policeCheck" className="text-sm font-normal flex items-center gap-1">
+                      <FileCheck className="h-3.5 w-3.5 text-green-600" />
+                      Krever politiattest
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="insurance"
+                      checked={preferences.requireInsurance}
+                      onCheckedChange={(checked) =>
+                        setPreferences({ ...preferences, requireInsurance: checked as boolean })
+                      }
+                    />
+                    <Label htmlFor="insurance" className="text-sm font-normal flex items-center gap-1">
+                      <Shield className="h-3.5 w-3.5 text-purple-600" />
+                      Krever forsikring
+                    </Label>
+                  </div>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2 mt-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="minRating" className="text-sm">Minimum vurdering</Label>
+                    <Select
+                      value={preferences.minRating.toString()}
+                      onValueChange={(value) =>
+                        setPreferences({ ...preferences, minRating: Number(value) })
+                      }
+                    >
+                      <SelectTrigger id="minRating">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="0">Ingen krav</SelectItem>
+                        <SelectItem value="3">3+ stjerner</SelectItem>
+                        <SelectItem value="4">4+ stjerner</SelectItem>
+                        <SelectItem value="4.5">4.5+ stjerner</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="minExperience" className="text-sm">Minimum erfaring</Label>
+                    <Select
+                      value={preferences.minExperience.toString()}
+                      onValueChange={(value) =>
+                        setPreferences({ ...preferences, minExperience: Number(value) })
+                      }
+                    >
+                      <SelectTrigger id="minExperience">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="0">Ingen krav</SelectItem>
+                        <SelectItem value="2">2+ år</SelectItem>
+                        <SelectItem value="5">5+ år</SelectItem>
+                        <SelectItem value="10">10+ år</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Provider list */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-muted-foreground">
+                    {filteredProviders.length} leverandører matcher dine krav
+                  </p>
+                  <Button variant="ghost" size="sm" onClick={handleSelectAll}>
+                    {selectedProviders.size === filteredProviders.length ? "Fjern alle" : "Velg alle"}
+                  </Button>
+                </div>
+
+                {filteredProviders.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <p>Ingen leverandører matcher dine krav.</p>
+                    <p className="text-sm">Prøv å justere filtrene.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {filteredProviders.map((provider) => (
+                      <ProviderSelectCard
+                        key={provider.userId}
+                        provider={provider}
+                        selected={selectedProviders.has(provider.userId)}
+                        onToggle={() => handleProviderToggle(provider.userId)}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Submit */}
+          <div className="flex gap-3">
+            <Button variant="outline" onClick={() => setStep("details")} className="flex-1">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Tilbake
+            </Button>
+            <Button
+              onClick={handleSubmit}
+              disabled={selectedProviders.size === 0 || isSubmitting}
+              className="flex-1"
+            >
+              {isSubmitting ? (
+                "Sender..."
+              ) : (
+                <>
+                  Send til {selectedProviders.size} leverandører
+                  <Send className="ml-2 h-4 w-4" />
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Details step (default)
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-2xl mx-auto">
-        {/* Back link */}
         <Link
           href={`/tjenester/${categoryId}`}
           className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-6"
@@ -198,6 +470,8 @@ export default function QuoteRequestPage() {
           Tilbake til {category.name.toLowerCase()}
         </Link>
 
+        <StepIndicator />
+
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-3">
@@ -205,11 +479,11 @@ export default function QuoteRequestPage() {
               Be om tilbud - {category.name}
             </CardTitle>
             <p className="text-sm text-muted-foreground">
-              Fyll ut skjemaet så får du tilbud fra leverandører i ditt område
+              Steg 1: Beskriv jobben du trenger hjelp med
             </p>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleNextStep} className="space-y-6">
               {/* Title */}
               <div className="space-y-2">
                 <Label htmlFor="title">Kort beskrivelse av oppdraget *</Label>
@@ -298,9 +572,6 @@ export default function QuoteRequestPage() {
                   onChange={(e) => setPreferredDate(e.target.value)}
                   min={new Date().toISOString().split("T")[0]}
                 />
-                <p className="text-xs text-muted-foreground">
-                  Leverandører vil se at dette er din foretrukne dato
-                </p>
               </div>
 
               {/* Info box */}
@@ -308,40 +579,78 @@ export default function QuoteRequestPage() {
                 <div className="flex gap-3">
                   <Info className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
                   <div className="text-sm">
-                    <p className="font-medium text-blue-900 mb-1">Slik fungerer det</p>
-                    <ul className="text-blue-700 space-y-1">
-                      <li>• Forespørselen sendes til relevante leverandører i ditt område</li>
-                      <li>• Du mottar tilbud med pris direkte fra leverandørene</li>
-                      <li>• Sammenlign tilbud og velg det beste for deg</li>
-                      <li>• Helt gratis og uforpliktende</li>
-                    </ul>
+                    <p className="font-medium text-blue-900 mb-1">Du velger hvem som får forespørselen</p>
+                    <p className="text-blue-700">
+                      I neste steg kan du sette kvalitetskrav og velge hvilke leverandører
+                      du vil sende forespørselen til.
+                    </p>
                   </div>
                 </div>
               </div>
 
-              {/* Submit */}
-              <div className="flex gap-3">
-                <Button type="submit" className="flex-1" disabled={isSubmitting}>
-                  {isSubmitting ? (
-                    "Sender forespørsel..."
-                  ) : (
-                    <>
-                      <Send className="mr-2 h-4 w-4" />
-                      Send forespørsel
-                    </>
-                  )}
-                </Button>
-              </div>
-
-              <p className="text-xs text-center text-muted-foreground">
-                Ved å sende forespørselen godtar du våre{" "}
-                <Link href="/vilkar" className="underline">
-                  vilkår
-                </Link>
-              </p>
+              {/* Next step button */}
+              <Button type="submit" className="w-full">
+                Neste: Velg leverandører
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
             </form>
           </CardContent>
         </Card>
+      </div>
+    </div>
+  );
+}
+
+// Provider selection card component
+function ProviderSelectCard({
+  provider,
+  selected,
+  onToggle,
+}: {
+  provider: ServiceProvider;
+  selected: boolean;
+  onToggle: () => void;
+}) {
+  const initials = `${provider.user.firstName[0]}${provider.user.lastName[0]}`;
+
+  return (
+    <div
+      onClick={onToggle}
+      className={`flex items-center gap-4 p-3 rounded-lg border cursor-pointer transition-colors ${
+        selected ? "border-primary bg-primary/5" : "hover:bg-muted/50"
+      }`}
+    >
+      <Checkbox checked={selected} onChange={onToggle} />
+      <Avatar className="h-10 w-10">
+        <AvatarImage src={provider.user.avatarUrl} alt="" />
+        <AvatarFallback>{initials}</AvatarFallback>
+      </Avatar>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <p className="font-medium truncate">
+            {provider.user.firstName} {provider.user.lastName}
+          </p>
+          {provider.verified && (
+            <CheckCircle className="h-4 w-4 text-blue-600 shrink-0" />
+          )}
+        </div>
+        <p className="text-sm text-muted-foreground truncate">
+          {provider.businessName}
+        </p>
+      </div>
+      <div className="flex flex-wrap gap-1 shrink-0">
+        {provider.policeCheck && (
+          <Badge variant="secondary" className="text-xs">
+            <FileCheck className="mr-1 h-3 w-3" />
+            Politiattest
+          </Badge>
+        )}
+      </div>
+      <div className="text-right shrink-0">
+        <Rating value={provider.rating} count={provider.reviewCount} size="sm" />
+        <p className="text-xs text-muted-foreground mt-0.5">
+          {provider.yearsExperience} års erfaring
+        </p>
       </div>
     </div>
   );
