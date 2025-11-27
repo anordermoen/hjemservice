@@ -126,11 +126,11 @@ export function Header() {
       <div
         id="mobile-menu"
         className={cn(
-          "md:hidden",
+          "md:hidden border-t",
           mobileMenuOpen ? "block" : "hidden"
         )}
       >
-        <div className="space-y-1 px-4 pb-4 pt-2">
+        <div className="space-y-1 px-4 pb-6 pt-2 max-h-[calc(100vh-4rem)] overflow-y-auto">
           <Link
             href="/tjenester"
             className="block rounded-md px-3 py-2 text-base font-medium hover:bg-accent"
