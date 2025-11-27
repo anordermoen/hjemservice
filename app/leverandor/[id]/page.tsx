@@ -8,6 +8,10 @@ import {
   Calendar,
   Star,
   FileCheck,
+  Languages,
+  Award,
+  GraduationCap,
+  Globe,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -159,6 +163,93 @@ export default async function ProviderPage({ params }: ProviderPageProps) {
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground">{provider.bio}</p>
+            </CardContent>
+          </Card>
+
+          {/* Qualifications */}
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>Kvalifikasjoner</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Languages */}
+              {provider.languages && provider.languages.length > 0 && (
+                <div>
+                  <h4 className="mb-3 flex items-center gap-2 font-medium">
+                    <Languages className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                    Språk
+                  </h4>
+                  <div className="flex flex-wrap gap-2">
+                    {provider.languages.map((lang) => (
+                      <Badge key={lang.code} variant="secondary" className="py-1.5">
+                        <span className="font-medium">{lang.name}</span>
+                        <span className="ml-1.5 text-xs text-muted-foreground">
+                          ({lang.proficiency})
+                        </span>
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Certificates */}
+              {provider.certificates && provider.certificates.length > 0 && (
+                <div>
+                  <h4 className="mb-3 flex items-center gap-2 font-medium">
+                    <Award className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                    Sertifikater og utdanning
+                  </h4>
+                  <div className="space-y-2">
+                    {provider.certificates.map((cert) => (
+                      <div
+                        key={cert.id}
+                        className="flex items-center justify-between rounded-lg border p-3"
+                      >
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{cert.name}</span>
+                            {cert.verified && (
+                              <CheckCircle className="h-4 w-4 text-green-600" aria-hidden="true" />
+                            )}
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            {cert.issuer} • {cert.year}
+                          </p>
+                        </div>
+                        {cert.verified && (
+                          <Badge variant="outline" className="text-green-700 border-green-200 bg-green-50">
+                            Verifisert
+                          </Badge>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Background */}
+              {(provider.nationality || provider.education) && (
+                <div>
+                  <h4 className="mb-3 flex items-center gap-2 font-medium">
+                    <Globe className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                    Bakgrunn
+                  </h4>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {provider.nationality && (
+                      <div className="rounded-lg border p-3">
+                        <p className="text-xs text-muted-foreground mb-1">Nasjonalitet</p>
+                        <p className="font-medium">{provider.nationality}</p>
+                      </div>
+                    )}
+                    {provider.education && (
+                      <div className="rounded-lg border p-3">
+                        <p className="text-xs text-muted-foreground mb-1">Utdanning</p>
+                        <p className="font-medium">{provider.education}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 

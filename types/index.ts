@@ -66,6 +66,25 @@ export interface Availability {
   leadTime: number;
 }
 
+// Language proficiency levels
+export type LanguageProficiency = "morsmål" | "flytende" | "god" | "grunnleggende";
+
+export interface Language {
+  code: string; // ISO 639-1 code (no, en, pl, etc.)
+  name: string;
+  proficiency: LanguageProficiency;
+}
+
+// Professional certificates
+export interface Certificate {
+  id: string;
+  name: string;
+  issuer: string;
+  year: number;
+  verified: boolean;
+  expiresAt?: Date;
+}
+
 export interface ServiceProvider {
   userId: string;
   businessName?: string;
@@ -83,6 +102,11 @@ export interface ServiceProvider {
   createdAt: Date;
   approvedAt?: Date;
   user: User;
+  // New fields for transparency
+  languages: Language[];
+  certificates?: Certificate[];
+  nationality?: string; // Country name
+  education?: string; // Brief education description
 }
 
 export interface BookedService {

@@ -11,6 +11,12 @@ import {
   Calendar,
   User,
   ShoppingCart,
+  Star,
+  Languages,
+  Shield,
+  FileCheck,
+  CheckCircle,
+  ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -639,22 +645,74 @@ export default function BookingPage({ params }: BookingPageProps) {
             </CardHeader>
             <CardContent>
               {/* Provider info */}
-              <div className="mb-4 flex items-center gap-3">
-                <Avatar>
-                  <AvatarImage
-                    src={provider.user.avatarUrl}
-                    alt={`${provider.user.firstName} ${provider.user.lastName}`}
-                  />
-                  <AvatarFallback>{initials}</AvatarFallback>
-                </Avatar>
-                <div>
-                  <p className="font-medium">
-                    {provider.user.firstName} {provider.user.lastName}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {provider.businessName}
-                  </p>
+              <div className="mb-4 p-3 bg-muted/30 rounded-lg">
+                <div className="flex items-start gap-3">
+                  <Link href={`/leverandor/${providerId}`}>
+                    <Avatar className="h-12 w-12 cursor-pointer hover:ring-2 hover:ring-primary transition-all">
+                      <AvatarImage
+                        src={provider.user.avatarUrl}
+                        alt={`${provider.user.firstName} ${provider.user.lastName}`}
+                      />
+                      <AvatarFallback>{initials}</AvatarFallback>
+                    </Avatar>
+                  </Link>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <Link href={`/leverandor/${providerId}`} className="hover:underline">
+                        <p className="font-medium">
+                          {provider.user.firstName} {provider.user.lastName}
+                        </p>
+                      </Link>
+                      {provider.verified && (
+                        <CheckCircle className="h-4 w-4 text-primary" />
+                      )}
+                    </div>
+                    {provider.businessName && (
+                      <p className="text-sm text-muted-foreground truncate">
+                        {provider.businessName}
+                      </p>
+                    )}
+                    <div className="flex items-center gap-1 mt-1 text-sm">
+                      <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                      <span className="font-medium">{provider.rating.toFixed(1)}</span>
+                      <span className="text-muted-foreground">({provider.reviewCount})</span>
+                    </div>
+                  </div>
                 </div>
+
+                {/* Quick qualifications */}
+                <div className="flex flex-wrap gap-1.5 mt-3">
+                  {provider.policeCheck && (
+                    <Badge variant="outline" className="text-xs">
+                      <FileCheck className="mr-1 h-3 w-3" />
+                      Politiattest
+                    </Badge>
+                  )}
+                  {provider.insurance && (
+                    <Badge variant="outline" className="text-xs">
+                      <Shield className="mr-1 h-3 w-3" />
+                      Forsikret
+                    </Badge>
+                  )}
+                </div>
+
+                {/* Languages */}
+                {provider.languages && provider.languages.length > 0 && (
+                  <div className="flex items-center gap-1.5 mt-2 text-xs text-muted-foreground">
+                    <Languages className="h-3.5 w-3.5" />
+                    {provider.languages
+                      .filter((l) => l.proficiency === "morsmål" || l.proficiency === "flytende")
+                      .map((l) => l.name)
+                      .join(", ")}
+                  </div>
+                )}
+
+                <Link href={`/leverandor/${providerId}`} className="block mt-3">
+                  <Button variant="ghost" size="sm" className="w-full text-xs">
+                    <ExternalLink className="mr-1 h-3 w-3" />
+                    Se full profil
+                  </Button>
+                </Link>
               </div>
 
               <Separator className="my-4" />

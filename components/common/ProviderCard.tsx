@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CheckCircle, Shield, FileCheck } from "lucide-react";
+import { CheckCircle, Shield, FileCheck, Languages, Award } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -87,6 +87,25 @@ export function ProviderCard({ provider }: ProviderCardProps) {
               <Badge variant="outline" className="text-xs">
                 {provider.yearsExperience} års erfaring
               </Badge>
+            </div>
+
+            {/* Languages and certificates compact display */}
+            <div className="mb-3 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+              {provider.languages && provider.languages.length > 0 && (
+                <span className="flex items-center gap-1">
+                  <Languages className="h-3 w-3" aria-hidden="true" />
+                  {provider.languages
+                    .filter((l) => l.proficiency === "morsmål" || l.proficiency === "flytende")
+                    .map((l) => l.name)
+                    .join(", ") || provider.languages[0].name}
+                </span>
+              )}
+              {provider.certificates && provider.certificates.filter((c) => c.verified).length > 0 && (
+                <span className="flex items-center gap-1">
+                  <Award className="h-3 w-3" aria-hidden="true" />
+                  {provider.certificates.filter((c) => c.verified).length} verifiserte sertifikater
+                </span>
+              )}
             </div>
 
             <p className="mb-4 line-clamp-2 text-sm text-muted-foreground">

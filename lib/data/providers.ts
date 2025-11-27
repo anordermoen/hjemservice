@@ -46,6 +46,16 @@ export const providers: ServiceProvider[] = [
       createdAt: new Date("2022-03-15"),
       avatarUrl: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop&crop=faces",
     },
+    languages: [
+      { code: "no", name: "Norsk", proficiency: "morsmål" },
+      { code: "en", name: "Engelsk", proficiency: "flytende" },
+    ],
+    certificates: [
+      { id: "c1", name: "Frisørsvenn", issuer: "Utdanningsdirektoratet", year: 2009, verified: true },
+      { id: "c2", name: "Frisørmester", issuer: "Mesterbrevnemnda", year: 2015, verified: true },
+    ],
+    nationality: "Norge",
+    education: "Frisørfag, Elvebakken VGS",
   },
   {
     userId: "p2",
@@ -90,6 +100,17 @@ export const providers: ServiceProvider[] = [
       createdAt: new Date("2023-01-10"),
       avatarUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop&crop=faces",
     },
+    languages: [
+      { code: "no", name: "Norsk", proficiency: "morsmål" },
+      { code: "en", name: "Engelsk", proficiency: "god" },
+      { code: "sv", name: "Svensk", proficiency: "god" },
+    ],
+    certificates: [
+      { id: "c3", name: "Frisørsvenn", issuer: "Utdanningsdirektoratet", year: 2016, verified: true },
+      { id: "c4", name: "Barbering spesialisering", issuer: "Oslo Frisørskole", year: 2018, verified: true },
+    ],
+    nationality: "Norge",
+    education: "Frisørfag, Oslo Frisørskole",
   },
   {
     userId: "p3",
@@ -134,6 +155,17 @@ export const providers: ServiceProvider[] = [
       createdAt: new Date("2021-06-01"),
       avatarUrl: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&h=200&fit=crop&crop=faces",
     },
+    languages: [
+      { code: "no", name: "Norsk", proficiency: "morsmål" },
+      { code: "da", name: "Dansk", proficiency: "flytende" },
+      { code: "en", name: "Engelsk", proficiency: "god" },
+    ],
+    certificates: [
+      { id: "c5", name: "Frisørsvenn", issuer: "Utdanningsdirektoratet", year: 2002, verified: true },
+      { id: "c6", name: "Frisørmester", issuer: "Mesterbrevnemnda", year: 2010, verified: true },
+    ],
+    nationality: "Danmark",
+    education: "Frisørfag, København Frisørskole",
   },
 
   // Renhold
@@ -181,6 +213,16 @@ export const providers: ServiceProvider[] = [
       createdAt: new Date("2020-08-01"),
       avatarUrl: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=200&h=200&fit=crop&crop=faces",
     },
+    languages: [
+      { code: "pl", name: "Polsk", proficiency: "morsmål" },
+      { code: "no", name: "Norsk", proficiency: "flytende" },
+      { code: "en", name: "Engelsk", proficiency: "god" },
+    ],
+    certificates: [
+      { id: "c7", name: "Renholdsoperatør", issuer: "NFVB", year: 2015, verified: true },
+    ],
+    nationality: "Polen",
+    education: "Servicefag, Warszawa",
   },
   {
     userId: "p5",
@@ -225,6 +267,15 @@ export const providers: ServiceProvider[] = [
       createdAt: new Date("2022-02-15"),
       avatarUrl: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop&crop=faces",
     },
+    languages: [
+      { code: "no", name: "Norsk", proficiency: "morsmål" },
+      { code: "en", name: "Engelsk", proficiency: "grunnleggende" },
+    ],
+    certificates: [
+      { id: "c8", name: "Renholdsoperatør", issuer: "NFVB", year: 2018, verified: true },
+    ],
+    nationality: "Norge",
+    education: "Servicefag, Lillestrøm VGS",
   },
 
   // Håndverker
@@ -272,6 +323,16 @@ export const providers: ServiceProvider[] = [
       createdAt: new Date("2019-11-01"),
       avatarUrl: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=200&h=200&fit=crop&crop=faces",
     },
+    languages: [
+      { code: "no", name: "Norsk", proficiency: "morsmål" },
+      { code: "en", name: "Engelsk", proficiency: "god" },
+    ],
+    certificates: [
+      { id: "c9", name: "Tømrersvenn", issuer: "Utdanningsdirektoratet", year: 2004, verified: true },
+      { id: "c10", name: "Tømrermester", issuer: "Mesterbrevnemnda", year: 2012, verified: true },
+    ],
+    nationality: "Norge",
+    education: "Tømrerfag, Kuben VGS",
   },
 
   // Elektriker
@@ -319,6 +380,17 @@ export const providers: ServiceProvider[] = [
       createdAt: new Date("2021-03-01"),
       avatarUrl: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=200&h=200&fit=crop&crop=faces",
     },
+    languages: [
+      { code: "no", name: "Norsk", proficiency: "morsmål" },
+      { code: "en", name: "Engelsk", proficiency: "flytende" },
+    ],
+    certificates: [
+      { id: "c11", name: "Elektrikerfagbrev", issuer: "Utdanningsdirektoratet", year: 2009, verified: true },
+      { id: "c12", name: "Installatørbevis L", issuer: "DSB", year: 2012, verified: true },
+      { id: "c13", name: "NEK 400 sertifisering", issuer: "NEK", year: 2023, verified: true },
+    ],
+    nationality: "Norge",
+    education: "Elektrofag, Oslo Tekniske Skole",
   },
 
   // Rørlegger
@@ -366,6 +438,18 @@ export const providers: ServiceProvider[] = [
       createdAt: new Date("2020-05-01"),
       avatarUrl: "https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=200&h=200&fit=crop&crop=faces",
     },
+    languages: [
+      { code: "no", name: "Norsk", proficiency: "morsmål" },
+      { code: "sv", name: "Svensk", proficiency: "flytende" },
+      { code: "en", name: "Engelsk", proficiency: "god" },
+    ],
+    certificates: [
+      { id: "c14", name: "Rørleggerfagbrev", issuer: "Utdanningsdirektoratet", year: 2006, verified: true },
+      { id: "c15", name: "VVS-montør", issuer: "NRL", year: 2010, verified: true },
+      { id: "c16", name: "ADK1-sertifisering", issuer: "Norsk Vann", year: 2020, verified: true },
+    ],
+    nationality: "Sverige",
+    education: "VVS-fag, Stockholm Tekniska Institut",
   },
 
   // Hage
@@ -413,6 +497,17 @@ export const providers: ServiceProvider[] = [
       createdAt: new Date("2021-04-01"),
       avatarUrl: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&h=200&fit=crop&crop=faces",
     },
+    languages: [
+      { code: "no", name: "Norsk", proficiency: "morsmål" },
+      { code: "en", name: "Engelsk", proficiency: "flytende" },
+      { code: "de", name: "Tysk", proficiency: "god" },
+    ],
+    certificates: [
+      { id: "c17", name: "Anleggsgartner fagbrev", issuer: "Utdanningsdirektoratet", year: 2014, verified: true },
+      { id: "c18", name: "Plantevern sertifikat", issuer: "Mattilsynet", year: 2022, verified: true },
+    ],
+    nationality: "Norge",
+    education: "Anleggsgartner, Ås VGS / NMBU",
   },
 ];
 

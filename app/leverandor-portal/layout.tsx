@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   CalendarDays,
   ClipboardList,
+  FileQuestion,
   Wallet,
   User,
 } from "lucide-react";
@@ -14,6 +15,7 @@ import { cn } from "@/lib/utils";
 const navItems = [
   { href: "/leverandor-portal", label: "Dashboard", icon: LayoutDashboard },
   { href: "/leverandor-portal/oppdrag", label: "Oppdrag", icon: ClipboardList },
+  { href: "/leverandor-portal/tilbud", label: "Tilbudsforespørsler", icon: FileQuestion },
   { href: "/leverandor-portal/kalender", label: "Kalender", icon: CalendarDays },
   { href: "/leverandor-portal/inntekt", label: "Inntekt", icon: Wallet },
   { href: "/leverandor-portal/profil", label: "Min profil", icon: User },

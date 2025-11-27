@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Search, MapPin, CheckCircle, Shield, Star, ArrowRight, FileCheck } from "lucide-react";
+import { Search, MapPin, CheckCircle, Shield, Star, ArrowRight, FileCheck, Languages } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -206,6 +206,9 @@ export default function HomePage() {
                 ? Math.min(...provider.services.map((s) => s.price))
                 : 0;
               const initials = `${provider.user.firstName[0]}${provider.user.lastName[0]}`;
+              const fluentLanguages = provider.languages?.filter(
+                (l) => l.proficiency === "morsmål" || l.proficiency === "flytende"
+              ) || [];
 
               return (
                 <Link
@@ -231,13 +234,19 @@ export default function HomePage() {
                           </p>
                         </div>
                       </div>
-                      <div className="mb-3">
+                      <div className="mb-2">
                         <Rating
                           value={provider.rating}
                           count={provider.reviewCount}
                           size="sm"
                         />
                       </div>
+                      {fluentLanguages.length > 0 && (
+                        <p className="mb-2 text-xs text-muted-foreground flex items-center gap-1">
+                          <Languages className="h-3 w-3" aria-hidden="true" />
+                          {fluentLanguages.map((l) => l.name).join(", ")}
+                        </p>
+                      )}
                       <div className="mb-3 flex flex-wrap gap-1">
                         {provider.policeCheck && (
                           <Badge variant="secondary" className="text-xs">

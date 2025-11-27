@@ -6,6 +6,8 @@ export const bookings: Booking[] = [
     id: "bk-001",
     customerId: "c1",
     providerId: "p1",
+    recipientName: "Kari Nordmann",
+    recipientPhone: "+47 923 45 678",
     services: [
       { serviceId: "s2", name: "Dameklipp", price: 749, duration: 45 },
     ],
@@ -30,6 +32,8 @@ export const bookings: Booking[] = [
     id: "bk-002",
     customerId: "c1",
     providerId: "p4",
+    recipientName: "Kari Nordmann",
+    recipientPhone: "+47 923 45 678",
     services: [
       { serviceId: "s14", name: "Ukentlig renhold (2-3 rom)", price: 1199, duration: 120 },
     ],
@@ -54,6 +58,8 @@ export const bookings: Booking[] = [
     id: "bk-003",
     customerId: "c1",
     providerId: "p6",
+    recipientName: "Kari Nordmann",
+    recipientPhone: "+47 923 45 678",
     services: [
       { serviceId: "s25", name: "Opphenging av TV", price: 1199, duration: 60 },
     ],
@@ -78,6 +84,8 @@ export const bookings: Booking[] = [
     id: "bk-004",
     customerId: "c1",
     providerId: "p2",
+    recipientName: "Kari Nordmann",
+    recipientPhone: "+47 923 45 678",
     services: [
       { serviceId: "s6", name: "Herreklipp", price: 499, duration: 30 },
       { serviceId: "s8", name: "Skjeggtrim", price: 299, duration: 20 },
@@ -110,6 +118,8 @@ export const bookings: Booking[] = [
     id: "bk-005",
     customerId: "c2",
     providerId: "p1",
+    recipientName: "Ole Hansen",
+    recipientPhone: "+47 912 34 567",
     services: [
       { serviceId: "s4", name: "Klipp + farge", price: 1899, duration: 120 },
     ],

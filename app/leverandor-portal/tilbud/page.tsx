@@ -3,6 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Clock, MapPin, Send, ChevronDown, ChevronUp, CheckCircle, MessageSquare } from "lucide-react";
+import { CategoryIcon } from "@/components/common/CategoryIcon";
+import { EmptyState } from "@/components/common/EmptyState";
+import { TipList } from "@/components/common/InfoBox";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -26,18 +29,11 @@ import {
 } from "@/lib/data/quotes";
 import { getProviderById } from "@/lib/data/providers";
 import { categories } from "@/lib/data/categories";
-import { formatPrice } from "@/lib/utils";
+import { formatPrice, formatDateShort, getDaysUntil } from "@/lib/utils";
 import { QuoteRequest, QuoteAnswer } from "@/types";
 
 // In a real app, this would come from auth
-const currentProviderId = "p3";
-
-function formatDate(date: Date): string {
-  return date.toLocaleDateString("nb-NO", {
-    day: "numeric",
-    month: "short",
-  });
-}
+const currentProviderId = "p7";
 
 function formatAnswers(answers: QuoteAnswer[]): { label: string; value: string }[] {
   return answers.map((answer) => ({
@@ -57,14 +53,18 @@ function QuoteRequestCard({
 }) {
   const [expanded, setExpanded] = useState(false);
   const category = categories.find((c) => c.id === request.categoryId);
-  const daysLeft = Math.ceil((request.expiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+  const daysLeft = getDaysUntil(request.expiresAt);
   const formattedAnswers = formatAnswers(request.answers);
 
   return (
     <div className="rounded-lg border p-4">
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-3">
-          <span className="text-2xl">{category?.icon}</span>
+          {category && (
+            <div className="rounded-full bg-primary/10 p-2">
+              <CategoryIcon icon={category.icon} className="h-5 w-5 text-primary" />
+            </div>
+          )}
           <div className="flex-1">
             <div className="flex items-center gap-2 flex-wrap">
               <h3 className="font-medium">{request.title}</h3>
@@ -81,7 +81,7 @@ function QuoteRequestCard({
           </div>
         </div>
         <div className="text-right text-sm">
-          <p className="text-muted-foreground">{formatDate(request.createdAt)}</p>
+          <p className="text-muted-foreground">{formatDateShort(request.createdAt)}</p>
           {daysLeft > 0 && (
             <p className="text-amber-600 font-medium">{daysLeft}d igjen</p>
           )}
@@ -219,7 +219,7 @@ function SendQuoteDialog({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="p-3 bg-muted/50 rounded-lg">
             <div className="flex items-center gap-2 mb-2">
-              <span>{category?.icon}</span>
+              {category && <CategoryIcon icon={category.icon} className="h-5 w-5 text-primary" />}
               <span className="font-medium">{category?.name}</span>
             </div>
             <p className="text-sm text-muted-foreground">
@@ -363,15 +363,11 @@ export default function ProviderQuotesPage() {
                   />
                 ))
               ) : (
-                <div className="py-8 text-center">
-                  <MessageSquare className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                  <p className="text-muted-foreground mb-2">
-                    Ingen nye forespørsler akkurat nå
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Nye forespørsler fra kunder i ditt område vil dukke opp her
-                  </p>
-                </div>
+                <EmptyState
+                  icon={MessageSquare}
+                  title="Ingen nye forespørsler akkurat nå"
+                  description="Nye forespørsler fra kunder i ditt område vil dukke opp her"
+                />
               )}
             </TabsContent>
 
@@ -396,7 +392,7 @@ export default function ProviderQuotesPage() {
                               ? "✓ Kunden aksepterte ditt tilbud!"
                               : response.status === "rejected"
                               ? "Kunden valgte et annet tilbud"
-                              : `Venter på svar • Gyldig til ${formatDate(response.validUntil)}`
+                              : `Venter på svar • Gyldig til ${formatDateShort(response.validUntil)}`
                             }
                           </p>
                         </div>
@@ -405,23 +401,21 @@ export default function ProviderQuotesPage() {
                   );
                 })
               ) : (
-                <p className="py-8 text-center text-muted-foreground">
-                  Du har ikke sendt noen tilbud ennå
-                </p>
+                <EmptyState title="Du har ikke sendt noen tilbud ennå" />
               )}
             </TabsContent>
           </Tabs>
 
-          {/* Tips */}
-          <div className="mt-6 rounded-lg bg-muted/40 p-4">
-            <h3 className="font-medium mb-2">Tips for gode tilbud</h3>
-            <ul className="text-sm text-muted-foreground space-y-1">
-              <li>• Svar raskt - kunder velger ofte den som svarer først</li>
-              <li>• Vær tydelig på hva som er inkludert i prisen</li>
-              <li>• Nevn din erfaring og eventuelle garantier</li>
-              <li>• Gi en realistisk tidsestimering</li>
-            </ul>
-          </div>
+          <TipList
+            title="Tips for gode tilbud"
+            className="mt-6"
+            tips={[
+              "Svar raskt - kunder velger ofte den som svarer først",
+              "Vær tydelig på hva som er inkludert i prisen",
+              "Nevn din erfaring og eventuelle garantier",
+              "Gi en realistisk tidsestimering",
+            ]}
+          />
         </CardContent>
       </Card>
 

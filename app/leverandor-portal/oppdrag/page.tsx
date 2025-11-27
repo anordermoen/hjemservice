@@ -2,11 +2,27 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Clock, MapPin, CheckCircle, XCircle, AlertTriangle, RefreshCw } from "lucide-react";
+import {
+  Clock,
+  MapPin,
+  CheckCircle,
+  XCircle,
+  AlertTriangle,
+  RefreshCw,
+  Phone,
+  User,
+  MessageSquare,
+  KeyRound,
+  Building,
+  StickyNote,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { EmptyState } from "@/components/common/EmptyState";
+import { TipList } from "@/components/common/InfoBox";
 import {
   Dialog,
   DialogContent,
@@ -18,7 +34,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { getBookingsByProviderId, isWithin24Hours, calculateCancellationFee } from "@/lib/data/bookings";
-import { formatPrice, formatDate } from "@/lib/utils";
+import { formatPrice, formatDate, formatTime } from "@/lib/utils";
 import { Booking } from "@/types";
 
 // In a real app, this would come from auth
@@ -37,18 +53,24 @@ function BookingCard({
 }) {
   const within24Hours = type === "upcoming" && isWithin24Hours(booking);
   const serviceNames = booking.services.map((s) => s.name).join(", ");
+  const totalDuration = booking.services.reduce((sum, s) => sum + s.duration, 0);
   const hasCancellationFee =
     booking.cancellation?.wasWithin24Hours &&
     booking.cancellation.cancellationFee > 0 &&
     !booking.cancellation.feeRefunded;
 
+  const customerInitials = booking.recipientName
+    ? booking.recipientName.split(" ").map(n => n[0]).join("").slice(0, 2)
+    : "KU";
+
   return (
-    <div className="flex flex-col gap-4 rounded-lg border p-4 sm:flex-row sm:items-start sm:justify-between">
-      <div className="flex-1">
+    <div className="rounded-lg border p-4">
+      {/* Header with service and status */}
+      <div className="flex items-center justify-between gap-2 mb-3">
         <div className="flex items-center gap-2 flex-wrap">
           <h3 className="font-medium">{serviceNames}</h3>
           {type === "pending" && (
-            <Badge className="bg-amber-100 text-amber-800">Venter</Badge>
+            <Badge className="bg-amber-100 text-amber-800">Venter på svar</Badge>
           )}
           {type === "upcoming" && (
             <Badge className="bg-green-100 text-green-800">Bekreftet</Badge>
@@ -56,72 +78,144 @@ function BookingCard({
           {type === "completed" && <Badge variant="secondary">Fullført</Badge>}
           {type === "cancelled" && (
             <Badge variant="destructive">
-              Avbestilt av{" "}
-              {booking.cancellation?.cancelledBy === "customer" ? "kunde" : "deg"}
+              Avbestilt av {booking.cancellation?.cancelledBy === "customer" ? "kunde" : "deg"}
             </Badge>
           )}
         </div>
-        <p className="text-sm font-medium mt-1">
-          {booking.recipientName || "Kunde"}
-        </p>
-        <div className="mt-2 space-y-1 text-sm text-muted-foreground">
-          <p className="flex items-center gap-2">
-            <Clock className="h-4 w-4" aria-hidden="true" />
-            {formatDate(booking.scheduledAt)} kl.{" "}
-            {booking.scheduledAt.toLocaleTimeString("nb-NO", {
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
-          </p>
-          <p className="flex items-center gap-2">
-            <MapPin className="h-4 w-4" aria-hidden="true" />
-            {booking.address.street}, {booking.address.postalCode} {booking.address.city}
-          </p>
+        <div className="text-right">
+          <p className="font-semibold text-primary">{formatPrice(booking.providerPayout)}</p>
+          <p className="text-xs text-muted-foreground">av {formatPrice(booking.totalPrice)}</p>
         </div>
-        <p className="mt-2 font-semibold">{formatPrice(booking.totalPrice)}</p>
+      </div>
 
-        {within24Hours && (
-          <div className="mt-2 flex items-center gap-1 text-xs text-amber-600">
-            <AlertTriangle className="h-3 w-3" aria-hidden="true" />
-            <span>Under 24 timer til oppdrag</span>
+      {/* Customer info */}
+      <div className="flex items-start gap-3 mb-3 p-3 bg-muted/30 rounded-lg">
+        <Avatar className="h-10 w-10">
+          <AvatarFallback>{customerInitials}</AvatarFallback>
+        </Avatar>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="font-medium">{booking.recipientName || "Kunde"}</span>
           </div>
-        )}
-
-        {hasCancellationFee && (
-          <div className="mt-2 p-2 rounded bg-amber-50 border border-amber-200">
-            <p className="text-sm text-amber-800">
-              Avbestillingsgebyr: {formatPrice(booking.cancellation!.cancellationFee)}
-            </p>
-            <p className="text-xs text-amber-600 mt-1">
-              Du kan velge å refundere dette til kunden
-            </p>
-          </div>
-        )}
-
-        {booking.cancellation?.feeRefunded && (
-          <p className="mt-2 text-xs text-green-600">
-            Gebyr refundert til kunde
-          </p>
+          {booking.recipientPhone && (
+            <a
+              href={`tel:${booking.recipientPhone}`}
+              className="flex items-center gap-1 text-sm text-primary hover:underline mt-1"
+            >
+              <Phone className="h-3.5 w-3.5" />
+              {booking.recipientPhone}
+            </a>
+          )}
+        </div>
+        {(type === "upcoming" || type === "pending") && booking.recipientPhone && (
+          <a href={`tel:${booking.recipientPhone}`}>
+            <Button variant="outline" size="sm">
+              <Phone className="h-4 w-4 mr-1" />
+              Ring
+            </Button>
+          </a>
         )}
       </div>
 
-      <div className="flex gap-2 flex-wrap">
+      {/* Time and location */}
+      <div className="grid gap-2 sm:grid-cols-2 mb-3">
+        <div className="flex items-start gap-2 text-sm">
+          <Clock className="h-4 w-4 text-muted-foreground mt-0.5" />
+          <div>
+            <p className="font-medium">{formatDate(booking.scheduledAt)}</p>
+            <p className="text-muted-foreground">
+              kl. {formatTime(booking.scheduledAt)} ({totalDuration} min)
+            </p>
+          </div>
+        </div>
+        <div className="flex items-start gap-2 text-sm">
+          <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
+          <div>
+            <p className="font-medium">{booking.address.street}</p>
+            <p className="text-muted-foreground">
+              {booking.address.postalCode} {booking.address.city}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Additional address details */}
+      {(booking.address.floor || booking.address.entryCode || booking.address.instructions) && (
+        <div className="mb-3 p-3 bg-blue-50 border border-blue-100 rounded-lg space-y-2 text-sm">
+          {booking.address.floor && (
+            <p className="flex items-center gap-2">
+              <Building className="h-4 w-4 text-blue-600" />
+              <span>Etasje: {booking.address.floor}</span>
+            </p>
+          )}
+          {booking.address.entryCode && (
+            <p className="flex items-center gap-2">
+              <KeyRound className="h-4 w-4 text-blue-600" />
+              <span>Portkode: <strong>{booking.address.entryCode}</strong></span>
+            </p>
+          )}
+          {booking.address.instructions && (
+            <p className="flex items-start gap-2">
+              <StickyNote className="h-4 w-4 text-blue-600 mt-0.5" />
+              <span>{booking.address.instructions}</span>
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Customer notes */}
+      {booking.notes && (
+        <div className="mb-3 p-3 bg-amber-50 border border-amber-100 rounded-lg">
+          <p className="flex items-start gap-2 text-sm">
+            <MessageSquare className="h-4 w-4 text-amber-600 mt-0.5" />
+            <span><strong>Merknad fra kunde:</strong> {booking.notes}</span>
+          </p>
+        </div>
+      )}
+
+      {within24Hours && (
+        <div className="mb-3 flex items-center gap-1 text-sm text-amber-600 bg-amber-50 p-2 rounded">
+          <AlertTriangle className="h-4 w-4" />
+          <span>Under 24 timer til oppdrag</span>
+        </div>
+      )}
+
+      {hasCancellationFee && (
+        <div className="mb-3 p-3 rounded bg-amber-50 border border-amber-200">
+          <p className="text-sm text-amber-800 font-medium">
+            Avbestillingsgebyr: {formatPrice(booking.cancellation!.cancellationFee)}
+          </p>
+          <p className="text-xs text-amber-600 mt-1">
+            Du kan velge å refundere dette til kunden for god kundeservice
+          </p>
+        </div>
+      )}
+
+      {booking.cancellation?.feeRefunded && (
+        <p className="mb-3 text-sm text-green-600 bg-green-50 p-2 rounded">
+          ✓ Gebyr refundert til kunde
+        </p>
+      )}
+
+      {/* Actions */}
+      <div className="flex gap-2 flex-wrap pt-3 border-t">
         {type === "pending" && (
           <>
-            <Button size="sm" variant="outline">
-              <XCircle className="mr-2 h-4 w-4" aria-hidden="true" />
+            <Button size="sm" variant="outline" className="text-destructive">
+              <XCircle className="mr-2 h-4 w-4" />
               Avslå
             </Button>
             <Button size="sm">
-              <CheckCircle className="mr-2 h-4 w-4" aria-hidden="true" />
-              Godta
+              <CheckCircle className="mr-2 h-4 w-4" />
+              Godta oppdrag
             </Button>
           </>
         )}
         {type === "upcoming" && (
           <>
             <Button size="sm" variant="outline">
-              Kontakt
+              <MessageSquare className="mr-2 h-4 w-4" />
+              Send melding
             </Button>
             <Button
               size="sm"
@@ -135,17 +229,13 @@ function BookingCard({
         )}
         {type === "completed" && (
           <Button size="sm" variant="outline">
-            Vis detaljer
+            Vis kvittering
           </Button>
         )}
         {type === "cancelled" && hasCancellationFee && (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => onRefundFee?.(booking)}
-          >
-            <RefreshCw className="mr-2 h-4 w-4" aria-hidden="true" />
-            Refunder gebyr
+          <Button size="sm" variant="outline" onClick={() => onRefundFee?.(booking)}>
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Refunder gebyr til kunde
           </Button>
         )}
       </div>
@@ -217,9 +307,11 @@ export default function ProviderBookingsPage() {
                   <BookingCard key={booking.id} booking={booking} type="pending" />
                 ))
               ) : (
-                <p className="py-8 text-center text-muted-foreground">
-                  Ingen ventende forespørsler
-                </p>
+                <EmptyState
+                  icon={Clock}
+                  title="Ingen ventende forespørsler"
+                  description="Nye bookingforespørsler fra kunder vil dukke opp her"
+                />
               )}
             </TabsContent>
 
@@ -234,9 +326,11 @@ export default function ProviderBookingsPage() {
                   />
                 ))
               ) : (
-                <p className="py-8 text-center text-muted-foreground">
-                  Ingen kommende oppdrag
-                </p>
+                <EmptyState
+                  icon={CheckCircle}
+                  title="Ingen kommende oppdrag"
+                  description="Bekreftede oppdrag vil vises her"
+                />
               )}
             </TabsContent>
 
@@ -246,9 +340,7 @@ export default function ProviderBookingsPage() {
                   <BookingCard key={booking.id} booking={booking} type="completed" />
                 ))
               ) : (
-                <p className="py-8 text-center text-muted-foreground">
-                  Ingen fullførte oppdrag ennå
-                </p>
+                <EmptyState title="Ingen fullførte oppdrag ennå" />
               )}
             </TabsContent>
 
@@ -263,23 +355,21 @@ export default function ProviderBookingsPage() {
                   />
                 ))
               ) : (
-                <p className="py-8 text-center text-muted-foreground">
-                  Ingen avbestilte oppdrag
-                </p>
+                <EmptyState title="Ingen avbestilte oppdrag" />
               )}
             </TabsContent>
           </Tabs>
 
-          {/* Cancellation policy info */}
-          <div className="mt-6 rounded-lg bg-muted/40 p-4">
-            <h3 className="font-medium mb-2">Avbestillingsregler</h3>
-            <ul className="text-sm text-muted-foreground space-y-1">
-              <li>• Kunder kan avbestille gratis mer enn 24 timer før</li>
-              <li>• Ved avbestilling innen 24 timer betaler kunden 50% gebyr</li>
-              <li>• Du kan velge å refundere gebyret til kunden</li>
-              <li>• Du kan avbestille oppdrag hvis nødvendig, men dette påvirker din rating</li>
-            </ul>
-          </div>
+          <TipList
+            title="Avbestillingsregler"
+            className="mt-6"
+            tips={[
+              "Kunder kan avbestille gratis mer enn 24 timer før",
+              "Ved avbestilling innen 24 timer betaler kunden 50% gebyr",
+              "Du kan velge å refundere gebyret til kunden",
+              "Du kan avbestille oppdrag hvis nødvendig, men dette påvirker din rating",
+            ]}
+          />
         </CardContent>
       </Card>
 

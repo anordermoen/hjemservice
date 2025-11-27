@@ -14,7 +14,9 @@ import {
   Shield,
   Star,
   Filter,
+  Languages,
 } from "lucide-react";
+import { CategoryIcon } from "@/components/common/CategoryIcon";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -475,7 +477,9 @@ export default function QuoteRequestPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-3">
-              <span className="text-2xl">{category.icon}</span>
+              <div className="rounded-full bg-primary/10 p-2">
+                <CategoryIcon icon={category.icon} className="h-6 w-6 text-primary" />
+              </div>
               Be om tilbud - {category.name}
             </CardTitle>
             <p className="text-sm text-muted-foreground">
@@ -612,6 +616,9 @@ function ProviderSelectCard({
   onToggle: () => void;
 }) {
   const initials = `${provider.user.firstName[0]}${provider.user.lastName[0]}`;
+  const fluentLanguages = provider.languages?.filter(
+    (l) => l.proficiency === "morsmål" || l.proficiency === "flytende"
+  ) || [];
 
   return (
     <div
@@ -621,15 +628,27 @@ function ProviderSelectCard({
       }`}
     >
       <Checkbox checked={selected} onChange={onToggle} />
-      <Avatar className="h-10 w-10">
-        <AvatarImage src={provider.user.avatarUrl} alt="" />
-        <AvatarFallback>{initials}</AvatarFallback>
-      </Avatar>
+      <Link
+        href={`/leverandor/${provider.userId}`}
+        onClick={(e) => e.stopPropagation()}
+        className="shrink-0"
+      >
+        <Avatar className="h-10 w-10 hover:ring-2 hover:ring-primary transition-all">
+          <AvatarImage src={provider.user.avatarUrl} alt="" />
+          <AvatarFallback>{initials}</AvatarFallback>
+        </Avatar>
+      </Link>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <p className="font-medium truncate">
-            {provider.user.firstName} {provider.user.lastName}
-          </p>
+          <Link
+            href={`/leverandor/${provider.userId}`}
+            onClick={(e) => e.stopPropagation()}
+            className="hover:underline"
+          >
+            <p className="font-medium truncate">
+              {provider.user.firstName} {provider.user.lastName}
+            </p>
+          </Link>
           {provider.verified && (
             <CheckCircle className="h-4 w-4 text-blue-600 shrink-0" />
           )}
@@ -637,6 +656,12 @@ function ProviderSelectCard({
         <p className="text-sm text-muted-foreground truncate">
           {provider.businessName}
         </p>
+        {fluentLanguages.length > 0 && (
+          <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+            <Languages className="h-3 w-3" />
+            {fluentLanguages.map((l) => l.name).join(", ")}
+          </p>
+        )}
       </div>
       <div className="flex flex-wrap gap-1 shrink-0">
         {provider.policeCheck && (

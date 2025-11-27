@@ -170,9 +170,11 @@ export default function AdminDashboardPage() {
               </p>
               <p className="text-sm text-blue-600">Trenger oppfølging</p>
             </div>
-            <Button size="sm" variant="outline">
-              Se alle
-            </Button>
+            <Link href="/admin/support">
+              <Button size="sm" variant="outline">
+                Se alle
+              </Button>
+            </Link>
           </CardContent>
         </Card>
       </div>

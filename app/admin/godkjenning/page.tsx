@@ -9,11 +9,18 @@ import {
   Mail,
   MapPin,
   Clock,
+  Languages,
+  Award,
+  GraduationCap,
+  Globe,
+  UserCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { EmptyState } from "@/components/common/EmptyState";
+import { TipList } from "@/components/common/InfoBox";
 import {
   Dialog,
   DialogContent,
@@ -35,6 +42,9 @@ interface ProviderApplication {
   status: "pending" | "approved" | "rejected";
   documents: string[];
   areas: string[];
+  languages: { name: string; proficiency: string }[];
+  nationality?: string;
+  education?: string;
 }
 
 const applications: ProviderApplication[] = [
@@ -50,11 +60,17 @@ const applications: ProviderApplication[] = [
     status: "pending",
     documents: ["Politiattest", "Forsikringsbevis"],
     areas: ["Oslo", "Bærum", "Asker"],
+    languages: [
+      { name: "Norsk", proficiency: "morsmål" },
+      { name: "Engelsk", proficiency: "god" },
+    ],
+    nationality: "Norge",
+    education: "Snekkerfag, Kuben VGS",
   },
   {
     id: "a2",
-    name: "Anna Larsen",
-    email: "anna.larsen@example.com",
+    name: "Anna Kowalska",
+    email: "anna.kowalska@example.com",
     phone: "923 45 678",
     category: "Renhold",
     experience: "5 år",
@@ -63,6 +79,12 @@ const applications: ProviderApplication[] = [
     status: "pending",
     documents: ["Politiattest"],
     areas: ["Oslo", "Nordstrand"],
+    languages: [
+      { name: "Polsk", proficiency: "morsmål" },
+      { name: "Norsk", proficiency: "flytende" },
+      { name: "Engelsk", proficiency: "god" },
+    ],
+    nationality: "Polen",
   },
   {
     id: "a3",
@@ -76,6 +98,12 @@ const applications: ProviderApplication[] = [
     status: "pending",
     documents: ["Politiattest", "Autorisasjonsbevis", "Forsikringsbevis"],
     areas: ["Oslo", "Bærum", "Drammen"],
+    languages: [
+      { name: "Norsk", proficiency: "morsmål" },
+      { name: "Engelsk", proficiency: "flytende" },
+    ],
+    nationality: "Norge",
+    education: "Elektrofag, Oslo Yrkesskole",
   },
   {
     id: "a4",
@@ -89,6 +117,11 @@ const applications: ProviderApplication[] = [
     status: "approved",
     documents: ["Politiattest", "Fagbrev"],
     areas: ["Oslo"],
+    languages: [
+      { name: "Norsk", proficiency: "morsmål" },
+    ],
+    nationality: "Norge",
+    education: "Frisørfag, Elvebakken VGS",
   },
   {
     id: "a5",
@@ -102,6 +135,11 @@ const applications: ProviderApplication[] = [
     status: "rejected",
     documents: ["Politiattest"],
     areas: ["Oslo"],
+    languages: [
+      { name: "Norsk", proficiency: "morsmål" },
+    ],
+    nationality: "Norge",
+    education: "Rørleggerfag",
   },
 ];
 
@@ -123,6 +161,10 @@ function ApplicationCard({
   onApprove: (id: string) => void;
   onReject: (id: string) => void;
 }) {
+  const fluentLanguages = application.languages.filter(
+    (l) => l.proficiency === "morsmål" || l.proficiency === "flytende"
+  );
+
   return (
     <Card>
       <CardContent className="p-4">
@@ -137,7 +179,7 @@ function ApplicationCard({
               </AvatarFallback>
             </Avatar>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h3 className="font-semibold">{application.name}</h3>
                 <Badge
                   variant={
@@ -158,6 +200,29 @@ function ApplicationCard({
               <p className="text-sm text-muted-foreground">
                 {application.category} • {application.experience} erfaring
               </p>
+
+              {/* Quick qualifications preview */}
+              <div className="mt-2 flex flex-wrap gap-2">
+                {application.nationality && (
+                  <Badge variant="outline" className="text-xs">
+                    <Globe className="mr-1 h-3 w-3" />
+                    {application.nationality}
+                  </Badge>
+                )}
+                {fluentLanguages.length > 0 && (
+                  <Badge variant="outline" className="text-xs">
+                    <Languages className="mr-1 h-3 w-3" />
+                    {fluentLanguages.map((l) => l.name).join(", ")}
+                  </Badge>
+                )}
+                {application.education && (
+                  <Badge variant="outline" className="text-xs">
+                    <GraduationCap className="mr-1 h-3 w-3" />
+                    Utdanning
+                  </Badge>
+                )}
+              </div>
+
               <div className="mt-2 space-y-1 text-sm text-muted-foreground">
                 <p className="flex items-center gap-2">
                   <Mail className="h-4 w-4" />
@@ -186,34 +251,100 @@ function ApplicationCard({
                   Se detaljer
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-lg">
+              <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                  <DialogTitle>Søknadsdetaljer</DialogTitle>
+                  <DialogTitle>Søknadsdetaljer - {application.name}</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4">
+                  {/* About */}
                   <div>
-                    <h4 className="mb-2 font-medium">Om søkeren</h4>
+                    <h4 className="mb-2 font-medium flex items-center gap-2">
+                      <UserCheck className="h-4 w-4" />
+                      Om søkeren
+                    </h4>
                     <p className="text-sm text-muted-foreground">
                       {application.bio}
                     </p>
                   </div>
+
+                  {/* Background info */}
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {application.nationality && (
+                      <div className="p-3 bg-muted/30 rounded-lg">
+                        <p className="text-xs text-muted-foreground mb-1">Nasjonalitet</p>
+                        <p className="font-medium flex items-center gap-2">
+                          <Globe className="h-4 w-4 text-muted-foreground" />
+                          {application.nationality}
+                        </p>
+                      </div>
+                    )}
+                    {application.education && (
+                      <div className="p-3 bg-muted/30 rounded-lg">
+                        <p className="text-xs text-muted-foreground mb-1">Utdanning</p>
+                        <p className="font-medium flex items-center gap-2">
+                          <GraduationCap className="h-4 w-4 text-muted-foreground" />
+                          {application.education}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Languages */}
                   <div>
-                    <h4 className="mb-2 font-medium">Dokumenter</h4>
+                    <h4 className="mb-2 font-medium flex items-center gap-2">
+                      <Languages className="h-4 w-4" />
+                      Språk
+                    </h4>
                     <div className="space-y-2">
-                      {application.documents.map((doc) => (
+                      {application.languages.map((lang) => (
                         <div
-                          key={doc}
-                          className="flex items-center gap-2 text-sm"
+                          key={lang.name}
+                          className="flex items-center justify-between text-sm p-2 bg-muted/30 rounded"
                         >
-                          <FileText className="h-4 w-4 text-muted-foreground" />
-                          {doc}
-                          <Badge variant="secondary">Lastet opp</Badge>
+                          <span className="font-medium">{lang.name}</span>
+                          <Badge
+                            variant={
+                              lang.proficiency === "morsmål"
+                                ? "default"
+                                : lang.proficiency === "flytende"
+                                ? "secondary"
+                                : "outline"
+                            }
+                          >
+                            {lang.proficiency}
+                          </Badge>
                         </div>
                       ))}
                     </div>
                   </div>
+
+                  {/* Documents */}
                   <div>
-                    <h4 className="mb-2 font-medium">Områder</h4>
+                    <h4 className="mb-2 font-medium flex items-center gap-2">
+                      <FileText className="h-4 w-4" />
+                      Dokumenter
+                    </h4>
+                    <div className="space-y-2">
+                      {application.documents.map((doc) => (
+                        <div
+                          key={doc}
+                          className="flex items-center justify-between text-sm p-2 bg-muted/30 rounded"
+                        >
+                          <span>{doc}</span>
+                          <Badge variant="secondary" className="bg-green-100 text-green-800">
+                            Lastet opp
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Areas */}
+                  <div>
+                    <h4 className="mb-2 font-medium flex items-center gap-2">
+                      <MapPin className="h-4 w-4" />
+                      Dekningsområder
+                    </h4>
                     <div className="flex flex-wrap gap-2">
                       {application.areas.map((area) => (
                         <Badge key={area} variant="outline">
@@ -222,6 +353,43 @@ function ApplicationCard({
                       ))}
                     </div>
                   </div>
+
+                  {/* Contact */}
+                  <div className="pt-3 border-t">
+                    <h4 className="mb-2 font-medium">Kontaktinfo</h4>
+                    <div className="space-y-1 text-sm">
+                      <p className="flex items-center gap-2">
+                        <Mail className="h-4 w-4 text-muted-foreground" />
+                        <a href={`mailto:${application.email}`} className="text-primary hover:underline">
+                          {application.email}
+                        </a>
+                      </p>
+                      <p className="flex items-center gap-2">
+                        <Phone className="h-4 w-4 text-muted-foreground" />
+                        <a href={`tel:${application.phone}`} className="text-primary hover:underline">
+                          {application.phone}
+                        </a>
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Action buttons in dialog */}
+                  {application.status === "pending" && (
+                    <div className="flex gap-2 pt-3 border-t">
+                      <Button
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => onReject(application.id)}
+                      >
+                        <XCircle className="mr-2 h-4 w-4" />
+                        Avslå
+                      </Button>
+                      <Button className="flex-1" onClick={() => onApprove(application.id)}>
+                        <CheckCircle className="mr-2 h-4 w-4" />
+                        Godkjenn
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </DialogContent>
             </Dialog>
@@ -298,9 +466,11 @@ export default function ApprovalsPage() {
                 />
               ))
             ) : (
-              <p className="py-8 text-center text-muted-foreground">
-                Ingen ventende søknader
-              </p>
+              <EmptyState
+                icon={Clock}
+                title="Ingen ventende søknader"
+                description="Nye leverandørsøknader vil dukke opp her for gjennomgang"
+              />
             )}
           </TabsContent>
 
@@ -315,9 +485,11 @@ export default function ApprovalsPage() {
                 />
               ))
             ) : (
-              <p className="py-8 text-center text-muted-foreground">
-                Ingen godkjente søknader
-              </p>
+              <EmptyState
+                icon={CheckCircle}
+                title="Ingen godkjente søknader"
+                description="Godkjente leverandører vil vises her"
+              />
             )}
           </TabsContent>
 
@@ -332,12 +504,25 @@ export default function ApprovalsPage() {
                 />
               ))
             ) : (
-              <p className="py-8 text-center text-muted-foreground">
-                Ingen avslåtte søknader
-              </p>
+              <EmptyState
+                icon={XCircle}
+                title="Ingen avslåtte søknader"
+                description="Avslåtte søknader vil vises her"
+              />
             )}
           </TabsContent>
         </Tabs>
+
+        <TipList
+          title="Godkjenningsretningslinjer"
+          className="mt-6"
+          tips={[
+            "Verifiser at politiattest er gyldig og oppdatert",
+            "Sjekk at nødvendige sertifikater/autorisasjoner er på plass",
+            "Vurder språkkunnskaper for kommunikasjon med kunder",
+            "Kontroller at dekningsområder stemmer overens med plattformens behov",
+          ]}
+        />
       </CardContent>
     </Card>
   );

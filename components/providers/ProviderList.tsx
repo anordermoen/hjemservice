@@ -3,7 +3,9 @@
 import { useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { ProviderCard } from "@/components/common/ProviderCard";
+import { EmptyState } from "@/components/common/EmptyState";
 import { ServiceProvider } from "@/types";
+import { Search } from "lucide-react";
 
 interface ProviderListProps {
   providers: ServiceProvider[];
@@ -14,6 +16,9 @@ export function ProviderList({ providers }: ProviderListProps) {
 
   const location = searchParams.get("sted")?.toLowerCase() || "";
   const sortBy = searchParams.get("sorter") || "recommended";
+  const requiredLanguages = searchParams.get("sprak")?.split(",").filter(Boolean) || [];
+  const requireCertificates = searchParams.get("sertifikater") === "true";
+  const requirePoliceCheck = searchParams.get("politiattest") === "true";
 
   const filteredAndSortedProviders = useMemo(() => {
     let result = [...providers];
@@ -25,6 +30,34 @@ export function ProviderList({ providers }: ProviderListProps) {
           area.toLowerCase().includes(location)
         )
       );
+    }
+
+    // Filter by languages (provider must speak all selected languages fluently or natively)
+    if (requiredLanguages.length > 0) {
+      result = result.filter((provider) => {
+        if (!provider.languages) return false;
+        return requiredLanguages.every((langCode) =>
+          provider.languages.some(
+            (l) =>
+              l.code === langCode &&
+              (l.proficiency === "morsmål" || l.proficiency === "flytende")
+          )
+        );
+      });
+    }
+
+    // Filter by verified certificates
+    if (requireCertificates) {
+      result = result.filter(
+        (provider) =>
+          provider.certificates &&
+          provider.certificates.some((c) => c.verified)
+      );
+    }
+
+    // Filter by police check
+    if (requirePoliceCheck) {
+      result = result.filter((provider) => provider.policeCheck);
     }
 
     // Sort
@@ -57,7 +90,9 @@ export function ProviderList({ providers }: ProviderListProps) {
     }
 
     return result;
-  }, [providers, location, sortBy]);
+  }, [providers, location, sortBy, requiredLanguages, requireCertificates, requirePoliceCheck]);
+
+  const hasFilters = location || requiredLanguages.length > 0 || requireCertificates || requirePoliceCheck;
 
   return (
     <>
@@ -73,13 +108,15 @@ export function ProviderList({ providers }: ProviderListProps) {
           ))}
         </div>
       ) : (
-        <div className="rounded-lg border bg-muted/40 p-8 text-center">
-          <p className="text-muted-foreground">
-            {location
-              ? `Ingen leverandører funnet i "${location}". Prøv et annet sted.`
-              : "Ingen leverandører funnet i denne kategorien."}
-          </p>
-        </div>
+        <EmptyState
+          icon={Search}
+          title="Ingen leverandører funnet"
+          description={
+            hasFilters
+              ? "Prøv å justere filtrene dine for å se flere leverandører."
+              : "Det er ingen leverandører i denne kategorien ennå."
+          }
+        />
       )}
     </>
   );

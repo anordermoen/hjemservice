@@ -3,7 +3,17 @@
 import { useState, use } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, AlertTriangle, Calendar, Clock, MapPin } from "lucide-react";
+import {
+  ArrowLeft,
+  AlertTriangle,
+  Calendar,
+  Clock,
+  MapPin,
+  Star,
+  Languages,
+  CheckCircle,
+  ExternalLink,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -82,19 +92,53 @@ export default function CancelBookingPage({ params }: CancelBookingPageProps) {
             <CardTitle className="text-lg">Bestillingsdetaljer</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center gap-4 mb-4">
-              <Avatar className="h-12 w-12">
-                <AvatarImage src={provider.user.avatarUrl} alt="" />
-                <AvatarFallback>{initials}</AvatarFallback>
-              </Avatar>
-              <div>
-                <p className="font-medium">
-                  {provider.user.firstName} {provider.user.lastName}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {provider.businessName}
-                </p>
+            {/* Provider info */}
+            <div className="flex items-start gap-3 mb-4 p-3 bg-muted/30 rounded-lg">
+              <Link href={`/leverandor/${provider.userId}`}>
+                <Avatar className="h-12 w-12 cursor-pointer hover:ring-2 hover:ring-primary transition-all">
+                  <AvatarImage src={provider.user.avatarUrl} alt="" />
+                  <AvatarFallback>{initials}</AvatarFallback>
+                </Avatar>
+              </Link>
+              <div className="flex-1">
+                <div className="flex items-center gap-1.5">
+                  <Link href={`/leverandor/${provider.userId}`} className="hover:underline">
+                    <p className="font-medium">
+                      {provider.user.firstName} {provider.user.lastName}
+                    </p>
+                  </Link>
+                  {provider.verified && (
+                    <CheckCircle className="h-4 w-4 text-primary" />
+                  )}
+                </div>
+                {provider.businessName && (
+                  <p className="text-sm text-muted-foreground">
+                    {provider.businessName}
+                  </p>
+                )}
+                <div className="flex items-center gap-3 mt-1 text-sm">
+                  <span className="flex items-center gap-1">
+                    <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                    <span className="font-medium">{provider.rating.toFixed(1)}</span>
+                    <span className="text-muted-foreground">({provider.reviewCount})</span>
+                  </span>
+                  {provider.languages && provider.languages.length > 0 && (
+                    <span className="flex items-center gap-1 text-muted-foreground">
+                      <Languages className="h-3.5 w-3.5" />
+                      {provider.languages
+                        .filter((l) => l.proficiency === "morsmål" || l.proficiency === "flytende")
+                        .slice(0, 2)
+                        .map((l) => l.name)
+                        .join(", ")}
+                    </span>
+                  )}
+                </div>
               </div>
+              <Link href={`/leverandor/${provider.userId}`}>
+                <Button variant="ghost" size="sm">
+                  <ExternalLink className="h-4 w-4" />
+                </Button>
+              </Link>
             </div>
 
             <div className="space-y-3 text-sm">

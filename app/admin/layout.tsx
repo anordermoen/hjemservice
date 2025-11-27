@@ -8,12 +8,14 @@ import {
   Users,
   CalendarDays,
   BarChart3,
+  MessageSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/godkjenning", label: "Godkjenning", icon: UserCheck },
+  { href: "/admin/support", label: "Support", icon: MessageSquare },
   { href: "/admin/statistikk", label: "Statistikk", icon: BarChart3 },
 ];
 
