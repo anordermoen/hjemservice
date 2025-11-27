@@ -60,12 +60,15 @@ export function Header() {
                 <ChevronDown className="h-4 w-4" aria-hidden="true" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-48">
+            <DropdownMenuContent align="start" className="w-56">
               <DropdownMenuItem asChild>
                 <Link href="/mine-sider">Min side (kunde)</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href="/mine-sider/bestillinger">Mine bestillinger</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/mine-sider/tilbud">Mine tilbudsforespørsler</Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
@@ -73,6 +76,9 @@ export function Header() {
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href="/leverandor-portal/oppdrag">Oppdrag</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/leverandor-portal/tilbud">Tilbudsforespørsler</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href="/leverandor-portal/kalender">Kalender</Link>
@@ -150,13 +156,13 @@ export function Header() {
             Bli leverandør
           </Link>
           <div className="border-t pt-4 mt-4">
-            <p className="px-3 py-1 text-xs font-semibold text-muted-foreground uppercase">Demo</p>
+            <p className="px-3 py-1 text-xs font-semibold text-muted-foreground uppercase">Demo - Kunde</p>
             <Link
               href="/mine-sider"
               className="block rounded-md px-3 py-2 text-sm hover:bg-accent"
               onClick={() => setMobileMenuOpen(false)}
             >
-              Min side (kunde)
+              Min side
             </Link>
             <Link
               href="/mine-sider/bestillinger"
@@ -165,6 +171,14 @@ export function Header() {
             >
               Mine bestillinger
             </Link>
+            <Link
+              href="/mine-sider/tilbud"
+              className="block rounded-md px-3 py-2 text-sm hover:bg-accent"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Mine tilbudsforespørsler
+            </Link>
+            <p className="px-3 py-1 mt-2 text-xs font-semibold text-muted-foreground uppercase">Demo - Leverandør</p>
             <Link
               href="/leverandor-portal"
               className="block rounded-md px-3 py-2 text-sm hover:bg-accent"
@@ -178,6 +192,13 @@ export function Header() {
               onClick={() => setMobileMenuOpen(false)}
             >
               Oppdrag
+            </Link>
+            <Link
+              href="/leverandor-portal/tilbud"
+              className="block rounded-md px-3 py-2 text-sm hover:bg-accent"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Tilbudsforespørsler
             </Link>
             <Link
               href="/admin"

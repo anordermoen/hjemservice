@@ -150,3 +150,49 @@ export interface ServiceCategory {
   icon: string;
   description: string;
 }
+
+// Quote request system
+export interface QuoteQuestion {
+  id: string;
+  question: string;
+  type: "text" | "textarea" | "select" | "number" | "photos";
+  placeholder?: string;
+  options?: string[];
+  required: boolean;
+  unit?: string;
+}
+
+export interface QuoteAnswer {
+  questionId: string;
+  answer: string | number | string[];
+}
+
+export interface QuoteRequest {
+  id: string;
+  customerId: string;
+  categoryId: string;
+  title: string;
+  description: string;
+  answers: QuoteAnswer[];
+  photos?: string[];
+  address: Address;
+  preferredDates?: string[];
+  status: "open" | "quoted" | "accepted" | "expired" | "cancelled";
+  createdAt: Date;
+  expiresAt: Date;
+}
+
+export interface QuoteResponse {
+  id: string;
+  quoteRequestId: string;
+  providerId: string;
+  provider?: ServiceProvider;
+  price: number;
+  estimatedDuration: number;
+  materialsIncluded: boolean;
+  materialsEstimate?: number;
+  message: string;
+  validUntil: Date;
+  status: "pending" | "accepted" | "rejected" | "expired";
+  createdAt: Date;
+}
