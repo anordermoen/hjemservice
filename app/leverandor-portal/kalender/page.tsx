@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { getProviderByUserId } from "@/lib/db/providers";
 import { getBookingsByProviderId } from "@/lib/db/bookings";
+import { getProviderSchedule, getProviderBlockedDates } from "@/lib/db/availability";
 import { ProviderCalendarClient } from "./ProviderCalendarClient";
 import { formatTime } from "@/lib/utils";
 
@@ -23,7 +24,11 @@ export default async function CalendarPage() {
     redirect("/bli-leverandor");
   }
 
-  const bookings = await getBookingsByProviderId(provider.id);
+  const [bookings, schedule, blockedDates] = await Promise.all([
+    getBookingsByProviderId(provider.id),
+    getProviderSchedule(provider.id),
+    getProviderBlockedDates(provider.id),
+  ]);
 
   // Transform bookings into calendar format
   const bookingsByDate: Record<string, Array<{
@@ -71,9 +76,26 @@ export default async function CalendarPage() {
 
   const today = new Date().toISOString().split("T")[0];
 
+  // Transform blocked dates
+  const blockedDatesMap: Record<string, string> = {};
+  for (const blocked of blockedDates) {
+    const dateKey = blocked.date.toISOString().split("T")[0];
+    blockedDatesMap[dateKey] = blocked.reason || "Blokkert";
+  }
+
+  // Transform schedule
+  const scheduleData = schedule.map((s) => ({
+    dayOfWeek: s.dayOfWeek,
+    startTime: s.startTime,
+    endTime: s.endTime,
+    isActive: s.isActive,
+  }));
+
   return (
     <ProviderCalendarClient
       bookings={bookingsByDate}
+      blockedDates={blockedDatesMap}
+      schedule={scheduleData}
       initialDate={today}
     />
   );

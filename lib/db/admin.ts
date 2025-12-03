@@ -152,6 +152,70 @@ export const getCategoryStats = cache(async () => {
   return stats.sort((a, b) => b.bookings - a.bookings);
 });
 
+// Get all providers for approval management
+export const getAllProvidersForApproval = cache(async () => {
+  const providers = await prisma.serviceProvider.findMany({
+    include: {
+      user: true,
+      categories: true,
+      languages: true,
+      certificates: true,
+    },
+    orderBy: { createdAt: "desc" },
+  });
+  return providers;
+});
+
+// Get a single provider by ID with full details
+export async function getProviderForApproval(providerId: string) {
+  const provider = await prisma.serviceProvider.findUnique({
+    where: { id: providerId },
+    include: {
+      user: true,
+      categories: true,
+      languages: true,
+      certificates: true,
+    },
+  });
+  return provider;
+}
+
+// Approve a provider
+export async function approveProvider(providerId: string) {
+  const provider = await prisma.serviceProvider.update({
+    where: { id: providerId },
+    data: { approvedAt: new Date() },
+  });
+  return provider;
+}
+
+// Reject a provider (set approvedAt to a past date to mark as rejected, or we can add a rejectedAt field)
+// For now, we'll delete the provider profile but keep the user
+export async function rejectProvider(providerId: string) {
+  // Get provider to find user
+  const provider = await prisma.serviceProvider.findUnique({
+    where: { id: providerId },
+    include: { user: true },
+  });
+
+  if (!provider) {
+    throw new Error("Provider not found");
+  }
+
+  // Delete the provider profile
+  await prisma.serviceProvider.delete({
+    where: { id: providerId },
+  });
+
+  // Update user role back to CUSTOMER
+  await prisma.user.update({
+    where: { id: provider.userId },
+    data: { role: "CUSTOMER" },
+  });
+
+  return provider;
+}
+
 // Get top providers
 export const getTopProviders = cache(async (limit = 5) => {
   const providers = await prisma.serviceProvider.findMany({

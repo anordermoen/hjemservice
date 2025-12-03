@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { getAvailableSlotsForDate } from "@/app/actions/availability";
 import {
   ArrowLeft,
   ArrowRight,
@@ -91,6 +92,7 @@ interface UserProfile {
 interface BookingClientProps {
   provider: Provider;
   userProfile: UserProfile | null;
+  blockedDates: string[];
 }
 
 const steps = [
@@ -100,7 +102,7 @@ const steps = [
   { id: 4, title: "Betaling", icon: CreditCard },
 ];
 
-export function BookingClient({ provider, userProfile }: BookingClientProps) {
+export function BookingClient({ provider, userProfile, blockedDates }: BookingClientProps) {
   const router = useRouter();
 
   // Get default address (first one or empty)
@@ -128,6 +130,8 @@ export function BookingClient({ provider, userProfile }: BookingClientProps) {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  const [availableSlots, setAvailableSlots] = useState<string[]>([]);
+  const [isLoadingSlots, startLoadingSlots] = useTransition();
 
   // Handle selecting a saved address
   const handleSelectAddress = (addressId: string) => {
@@ -169,38 +173,36 @@ export function BookingClient({ provider, userProfile }: BookingClientProps) {
     return days[date.getDay()];
   };
 
-  // Generate available dates (next 14 days)
+  // Create a Set of blocked dates for fast lookup
+  const blockedDateSet = new Set(blockedDates);
+
+  // Generate available dates (next 14 days), excluding blocked dates
   const availableDates: Date[] = [];
   const today = new Date();
   for (let i = 1; i <= 14; i++) {
     const date = new Date(today);
     date.setDate(today.getDate() + i);
     const dayName = getDayName(date);
-    if (schedule[dayName]?.length > 0) {
+    const dateKey = date.toISOString().split("T")[0];
+    // Only include if provider works on this day AND it's not blocked
+    if (schedule[dayName]?.length > 0 && !blockedDateSet.has(dateKey)) {
       availableDates.push(date);
     }
   }
 
-  // Generate time slots for selected date
-  const getTimeSlots = () => {
-    if (!selectedDate) return [];
-    const dayName = getDayName(selectedDate);
-    const daySchedule = schedule[dayName];
-    if (!daySchedule || daySchedule.length === 0) return [];
+  // Fetch available slots when date changes
+  useEffect(() => {
+    if (!selectedDate) {
+      setAvailableSlots([]);
+      return;
+    }
 
-    const slots: string[] = [];
-    daySchedule.forEach((slot) => {
-      const [startHour] = slot.start.split(":").map(Number);
-      const [endHour] = slot.end.split(":").map(Number);
-      for (let hour = startHour; hour < endHour; hour++) {
-        slots.push(`${hour.toString().padStart(2, "0")}:00`);
-        if (hour + 0.5 < endHour) {
-          slots.push(`${hour.toString().padStart(2, "0")}:30`);
-        }
-      }
+    const dateStr = selectedDate.toISOString().split("T")[0];
+    startLoadingSlots(async () => {
+      const result = await getAvailableSlotsForDate(provider.id, dateStr);
+      setAvailableSlots(result.slots);
     });
-    return slots;
-  };
+  }, [selectedDate, provider.id]);
 
   const handleServiceToggle = (service: ProviderService) => {
     setSelectedServices((prev) =>
@@ -390,7 +392,6 @@ export function BookingClient({ provider, userProfile }: BookingClientProps) {
                           "flex cursor-pointer items-center justify-between rounded-lg border p-4 transition-colors",
                           isSelected && "border-primary bg-primary/5"
                         )}
-                        onClick={() => handleServiceToggle(service)}
                       >
                         <div className="flex items-center gap-3">
                           <Checkbox
@@ -463,26 +464,37 @@ export function BookingClient({ provider, userProfile }: BookingClientProps) {
                 {selectedDate && (
                   <div>
                     <Label className="mb-3 block">Velg tidspunkt</Label>
-                    <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
-                      {getTimeSlots().map((time) => {
-                        const isSelected = selectedTime === time;
-                        return (
-                          <button
-                            key={time}
-                            type="button"
-                            onClick={() => setSelectedTime(time)}
-                            className={cn(
-                              "rounded-lg border p-2 text-sm transition-colors",
-                              isSelected
-                                ? "border-primary bg-primary text-primary-foreground"
-                                : "hover:border-primary/50"
-                            )}
-                          >
-                            {time}
-                          </button>
-                        );
-                      })}
-                    </div>
+                    {isLoadingSlots ? (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                        <span className="ml-2 text-muted-foreground">Henter ledige tider...</span>
+                      </div>
+                    ) : availableSlots.length > 0 ? (
+                      <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
+                        {availableSlots.map((time) => {
+                          const isSelected = selectedTime === time;
+                          return (
+                            <button
+                              key={time}
+                              type="button"
+                              onClick={() => setSelectedTime(time)}
+                              className={cn(
+                                "rounded-lg border p-2 text-sm transition-colors",
+                                isSelected
+                                  ? "border-primary bg-primary text-primary-foreground"
+                                  : "hover:border-primary/50"
+                              )}
+                            >
+                              {time}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="py-8 text-center text-muted-foreground">
+                        Ingen ledige tider denne dagen
+                      </div>
+                    )}
                   </div>
                 )}
               </CardContent>

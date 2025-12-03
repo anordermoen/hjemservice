@@ -12,6 +12,7 @@ import {
   Users,
   Settings,
   Loader2,
+  HelpCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -21,6 +22,7 @@ const navItems = [
   { href: "/mine-sider/tilbud", label: "Tilbudsforespørsler", icon: FileQuestion },
   { href: "/mine-sider/favoritter", label: "Favoritter", icon: Heart },
   { href: "/mine-sider/familie", label: "Familie", icon: Users },
+  { href: "/mine-sider/hjelp", label: "Hjelp og support", icon: HelpCircle },
   { href: "/mine-sider/innstillinger", label: "Innstillinger", icon: Settings },
 ];
 

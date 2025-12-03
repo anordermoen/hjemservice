@@ -70,6 +70,8 @@ model User {
   bookingsAsCustomer Booking[]        @relation("CustomerBookings")
   reviews            Review[]
   quoteRequests      QuoteRequest[]
+  supportTickets     SupportTicket[]
+  supportResponses   SupportTicketResponse[]
 }
 
 enum UserRole {
@@ -117,6 +119,7 @@ model ServiceProvider {
   categories     ServiceCategory[]  @relation("ProviderCategories")
   services       Service[]
   availability   ProviderSchedule[]
+  blockedDatesList BlockedDate[]
   languages      ProviderLanguage[]
   certificates   Certificate[]
   bookings       Booking[]
@@ -125,15 +128,29 @@ model ServiceProvider {
 }
 
 model ProviderSchedule {
-  id         String @id @default(cuid())
+  id         String  @id @default(cuid())
   providerId String
-  dayOfWeek  Int
-  startTime  String
-  endTime    String
+  dayOfWeek  Int // 0=Sunday, 1=Monday, etc.
+  startTime  String // "09:00"
+  endTime    String // "17:00"
+  isActive   Boolean @default(true)
 
   provider ServiceProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
 
   @@unique([providerId, dayOfWeek, startTime])
+}
+
+// Blocked dates for vacations, holidays, etc.
+model BlockedDate {
+  id         String   @id @default(cuid())
+  providerId String
+  date       DateTime @db.Date
+  reason     String?
+  createdAt  DateTime @default(now())
+
+  provider ServiceProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, date])
 }
 
 model ProviderLanguage {
@@ -359,4 +376,55 @@ enum QuoteResponseStatus {
   ACCEPTED
   REJECTED
   EXPIRED
+}
+
+// ============ SUPPORT SYSTEM ============
+
+model SupportTicket {
+  id          String               @id @default(cuid())
+  userId      String
+  subject     String
+  message     String
+  category    SupportCategory
+  priority    SupportPriority      @default(MEDIUM)
+  status      SupportTicketStatus  @default(OPEN)
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  resolvedAt  DateTime?
+  assignedTo  String?
+
+  user      User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  responses SupportTicketResponse[]
+}
+
+model SupportTicketResponse {
+  id        String   @id @default(cuid())
+  ticketId  String
+  userId    String
+  message   String
+  isAdmin   Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  ticket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  user   User          @relation(fields: [userId], references: [id])
+}
+
+enum SupportCategory {
+  BOOKING
+  PAYMENT
+  PROVIDER
+  TECHNICAL
+  OTHER
+}
+
+enum SupportPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum SupportTicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
 }

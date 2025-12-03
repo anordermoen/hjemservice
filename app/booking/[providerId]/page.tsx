@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { getProviderById, getProviders } from "@/lib/db/providers";
 import { getCustomerProfile } from "@/lib/db/users";
+import { getProviderBlockedDates } from "@/lib/db/availability";
 import { BookingClient } from "./BookingClient";
 
 interface BookingPageProps {
@@ -35,9 +36,10 @@ export async function generateMetadata({ params }: BookingPageProps) {
 
 export default async function BookingPage({ params }: BookingPageProps) {
   const { providerId } = await params;
-  const [provider, session] = await Promise.all([
+  const [provider, session, blockedDates] = await Promise.all([
     getProviderById(providerId),
     auth(),
+    getProviderBlockedDates(providerId),
   ]);
 
   if (!provider) {
@@ -48,6 +50,11 @@ export default async function BookingPage({ params }: BookingPageProps) {
   const customerProfile = session?.user?.id
     ? await getCustomerProfile(session.user.id)
     : null;
+
+  // Transform blocked dates to date strings
+  const blockedDateStrings = blockedDates.map((bd) =>
+    bd.date.toISOString().split("T")[0]
+  );
 
   // Transform to the shape expected by BookingClient
   const clientProvider = {
@@ -102,5 +109,11 @@ export default async function BookingPage({ params }: BookingPageProps) {
       }
     : null;
 
-  return <BookingClient provider={clientProvider} userProfile={userProfile} />;
+  return (
+    <BookingClient
+      provider={clientProvider}
+      userProfile={userProfile}
+      blockedDates={blockedDateStrings}
+    />
+  );
 }

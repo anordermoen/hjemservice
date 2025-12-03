@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Filter, SlidersHorizontal, X } from "lucide-react";
+import { Filter, SlidersHorizontal, X, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Slider } from "@/components/ui/slider";
 import {
   Select,
   SelectContent,
@@ -24,6 +25,7 @@ import {
   SheetTrigger,
   SheetFooter,
 } from "@/components/ui/sheet";
+import { cn } from "@/lib/utils";
 
 // Available languages for filtering
 const AVAILABLE_LANGUAGES = [
@@ -33,6 +35,17 @@ const AVAILABLE_LANGUAGES = [
   { code: "sv", name: "Svensk" },
   { code: "da", name: "Dansk" },
   { code: "lt", name: "Litauisk" },
+];
+
+// Days of week for availability filtering
+const DAYS_OF_WEEK = [
+  { value: 1, label: "Man", fullName: "Mandag" },
+  { value: 2, label: "Tir", fullName: "Tirsdag" },
+  { value: 3, label: "Ons", fullName: "Onsdag" },
+  { value: 4, label: "Tor", fullName: "Torsdag" },
+  { value: 5, label: "Fre", fullName: "Fredag" },
+  { value: 6, label: "Lør", fullName: "Lørdag" },
+  { value: 0, label: "Søn", fullName: "Søndag" },
 ];
 
 interface ProviderFiltersProps {
@@ -49,8 +62,19 @@ export function ProviderFilters({ categoryId }: ProviderFiltersProps) {
   const currentLanguages = searchParams.get("sprak")?.split(",").filter(Boolean) || [];
   const requireCertificates = searchParams.get("sertifikater") === "true";
   const requirePoliceCheck = searchParams.get("politiattest") === "true";
+  const minPrice = searchParams.get("minPris") ? parseInt(searchParams.get("minPris")!) : undefined;
+  const maxPrice = searchParams.get("maksPris") ? parseInt(searchParams.get("maksPris")!) : undefined;
+  const minRating = searchParams.get("minVurdering") ? parseFloat(searchParams.get("minVurdering")!) : undefined;
+  const availableDays = searchParams.get("dager")?.split(",").filter(Boolean).map(Number) || [];
 
-  const activeFilterCount = currentLanguages.length + (requireCertificates ? 1 : 0) + (requirePoliceCheck ? 1 : 0);
+  const activeFilterCount =
+    currentLanguages.length +
+    (requireCertificates ? 1 : 0) +
+    (requirePoliceCheck ? 1 : 0) +
+    (minPrice !== undefined ? 1 : 0) +
+    (maxPrice !== undefined ? 1 : 0) +
+    (minRating !== undefined ? 1 : 0) +
+    availableDays.length;
 
   const updateParams = (key: string, value: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -88,11 +112,22 @@ export function ProviderFilters({ categoryId }: ProviderFiltersProps) {
     updateParams("sprak", newLanguages.join(","));
   };
 
+  const toggleDay = (day: number) => {
+    const newDays = availableDays.includes(day)
+      ? availableDays.filter((d) => d !== day)
+      : [...availableDays, day];
+    updateParams("dager", newDays.join(","));
+  };
+
   const clearFilters = () => {
     updateMultipleParams({
       sprak: null,
       sertifikater: null,
       politiattest: null,
+      minPris: null,
+      maksPris: null,
+      minVurdering: null,
+      dager: null,
     });
   };
 
@@ -118,7 +153,92 @@ export function ProviderFilters({ categoryId }: ProviderFiltersProps) {
           </SheetDescription>
         </SheetHeader>
 
-        <div className="py-6 space-y-6">
+        <div className="py-6 space-y-6 overflow-y-auto max-h-[calc(100vh-200px)]">
+          {/* Price range filter */}
+          <div>
+            <h4 className="font-medium mb-3">Prisklasse</h4>
+            <p className="text-sm text-muted-foreground mb-3">
+              Filtrer på pris per time
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="minPrice" className="text-xs text-muted-foreground">
+                  Min (kr)
+                </Label>
+                <Input
+                  id="minPrice"
+                  type="number"
+                  placeholder="0"
+                  value={minPrice ?? ""}
+                  onChange={(e) => updateParams("minPris", e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="maxPrice" className="text-xs text-muted-foreground">
+                  Maks (kr)
+                </Label>
+                <Input
+                  id="maxPrice"
+                  type="number"
+                  placeholder="5000"
+                  value={maxPrice ?? ""}
+                  onChange={(e) => updateParams("maksPris", e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Rating filter */}
+          <div>
+            <h4 className="font-medium mb-3">Minimum vurdering</h4>
+            <div className="flex items-center gap-2">
+              {[4.5, 4.0, 3.5, 3.0].map((rating) => (
+                <button
+                  key={rating}
+                  onClick={() =>
+                    updateParams("minVurdering", minRating === rating ? "" : rating.toString())
+                  }
+                  className={cn(
+                    "flex items-center gap-1 rounded-full border px-3 py-1.5 text-sm transition-colors",
+                    minRating === rating
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "hover:border-primary/50"
+                  )}
+                >
+                  <Star className="h-3.5 w-3.5 fill-current" />
+                  {rating}+
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Availability filter */}
+          <div>
+            <h4 className="font-medium mb-3">Tilgjengelig på</h4>
+            <p className="text-sm text-muted-foreground mb-3">
+              Velg hvilke dager leverandøren må jobbe
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {DAYS_OF_WEEK.map((day) => (
+                <button
+                  key={day.value}
+                  onClick={() => toggleDay(day.value)}
+                  className={cn(
+                    "rounded-md border px-3 py-2 text-sm transition-colors",
+                    availableDays.includes(day.value)
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "hover:border-primary/50"
+                  )}
+                  title={day.fullName}
+                >
+                  {day.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Language filters */}
           <div>
             <h4 className="font-medium mb-3">Språk</h4>
@@ -217,6 +337,58 @@ export function ProviderFilters({ categoryId }: ProviderFiltersProps) {
       {/* Active filter badges */}
       {activeFilterCount > 0 && (
         <div className="flex flex-wrap gap-2">
+          {minPrice !== undefined && (
+            <Badge variant="secondary" className="gap-1">
+              Min {minPrice} kr
+              <button
+                onClick={() => updateParams("minPris", "")}
+                className="ml-1 hover:text-destructive"
+                aria-label="Fjern minimum pris filter"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          )}
+          {maxPrice !== undefined && (
+            <Badge variant="secondary" className="gap-1">
+              Maks {maxPrice} kr
+              <button
+                onClick={() => updateParams("maksPris", "")}
+                className="ml-1 hover:text-destructive"
+                aria-label="Fjern maksimum pris filter"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          )}
+          {minRating !== undefined && (
+            <Badge variant="secondary" className="gap-1">
+              <Star className="h-3 w-3 fill-current" />
+              {minRating}+
+              <button
+                onClick={() => updateParams("minVurdering", "")}
+                className="ml-1 hover:text-destructive"
+                aria-label="Fjern vurdering filter"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          )}
+          {availableDays.map((day) => {
+            const dayInfo = DAYS_OF_WEEK.find((d) => d.value === day);
+            return dayInfo ? (
+              <Badge key={day} variant="secondary" className="gap-1">
+                {dayInfo.fullName}
+                <button
+                  onClick={() => toggleDay(day)}
+                  className="ml-1 hover:text-destructive"
+                  aria-label={`Fjern ${dayInfo.fullName} filter`}
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            ) : null;
+          })}
           {currentLanguages.map((code) => {
             const lang = AVAILABLE_LANGUAGES.find((l) => l.code === code);
             return lang ? (

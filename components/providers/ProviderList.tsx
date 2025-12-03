@@ -19,6 +19,10 @@ export function ProviderList({ providers }: ProviderListProps) {
   const requiredLanguages = searchParams.get("sprak")?.split(",").filter(Boolean) || [];
   const requireCertificates = searchParams.get("sertifikater") === "true";
   const requirePoliceCheck = searchParams.get("politiattest") === "true";
+  const minPrice = searchParams.get("minPris") ? parseInt(searchParams.get("minPris")!) : undefined;
+  const maxPrice = searchParams.get("maksPris") ? parseInt(searchParams.get("maksPris")!) : undefined;
+  const minRating = searchParams.get("minVurdering") ? parseFloat(searchParams.get("minVurdering")!) : undefined;
+  const availableDays = searchParams.get("dager")?.split(",").filter(Boolean).map(Number) || [];
 
   const filteredAndSortedProviders = useMemo(() => {
     let result = [...providers];
@@ -60,6 +64,44 @@ export function ProviderList({ providers }: ProviderListProps) {
       result = result.filter((provider) => provider.policeCheck);
     }
 
+    // Filter by price range
+    if (minPrice !== undefined || maxPrice !== undefined) {
+      result = result.filter((provider) => {
+        const providerMinPrice = Math.min(...provider.services.map((s) => s.price));
+        if (minPrice !== undefined && providerMinPrice < minPrice) return false;
+        if (maxPrice !== undefined && providerMinPrice > maxPrice) return false;
+        return true;
+      });
+    }
+
+    // Filter by minimum rating
+    if (minRating !== undefined) {
+      result = result.filter((provider) => provider.rating >= minRating);
+    }
+
+    // Filter by available days
+    if (availableDays.length > 0) {
+      result = result.filter((provider) => {
+        if (!provider.availability?.schedule) return false;
+        const schedule = provider.availability.schedule;
+        const dayMap: Record<number, keyof typeof schedule> = {
+          0: "sunday",
+          1: "monday",
+          2: "tuesday",
+          3: "wednesday",
+          4: "thursday",
+          5: "friday",
+          6: "saturday",
+        };
+        // Provider must work on ALL selected days
+        return availableDays.every((day) => {
+          const dayKey = dayMap[day];
+          const daySlots = schedule[dayKey];
+          return daySlots && daySlots.length > 0;
+        });
+      });
+    }
+
     // Sort
     switch (sortBy) {
       case "rating":
@@ -90,9 +132,9 @@ export function ProviderList({ providers }: ProviderListProps) {
     }
 
     return result;
-  }, [providers, location, sortBy, requiredLanguages, requireCertificates, requirePoliceCheck]);
+  }, [providers, location, sortBy, requiredLanguages, requireCertificates, requirePoliceCheck, minPrice, maxPrice, minRating, availableDays]);
 
-  const hasFilters = location || requiredLanguages.length > 0 || requireCertificates || requirePoliceCheck;
+  const hasFilters = location || requiredLanguages.length > 0 || requireCertificates || requirePoliceCheck || minPrice !== undefined || maxPrice !== undefined || minRating !== undefined || availableDays.length > 0;
 
   return (
     <>
