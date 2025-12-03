@@ -341,6 +341,10 @@ export default async function ProviderPage({ params }: ProviderPageProps) {
                     </div>
                   ))}
                 </div>
+              ) : provider.reviewCount > 0 ? (
+                <p className="text-center text-muted-foreground">
+                  Vurderinger er ikke tilgjengelig for visning ennå
+                </p>
               ) : (
                 <p className="text-center text-muted-foreground">
                   Ingen vurderinger ennå

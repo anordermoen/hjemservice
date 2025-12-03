@@ -238,30 +238,31 @@ export function FamilyClient({ initialMembers }: FamilyClientProps) {
   );
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="flex items-center gap-2">
-          <Users className="h-5 w-5" />
-          Familie
-        </CardTitle>
-        <Dialog open={isAddDialogOpen} onOpenChange={(open) => {
-          setIsAddDialogOpen(open);
-          if (!open) resetForm();
-        }}>
-          <DialogTrigger asChild>
-            <Button size="sm">
-              <Plus className="mr-2 h-4 w-4" />
-              Legg til
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Legg til familiemedlem</DialogTitle>
-            </DialogHeader>
-            <MemberForm onSubmit={handleAdd} submitLabel="Legg til" />
-          </DialogContent>
-        </Dialog>
-      </CardHeader>
+    <>
+      {/* Add Dialog */}
+      <Dialog open={isAddDialogOpen} onOpenChange={(open) => {
+        setIsAddDialogOpen(open);
+        if (!open) resetForm();
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Legg til familiemedlem</DialogTitle>
+          </DialogHeader>
+          <MemberForm onSubmit={handleAdd} submitLabel="Legg til" />
+        </DialogContent>
+      </Dialog>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            Familie
+          </CardTitle>
+          <Button size="sm" onClick={() => setIsAddDialogOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Legg til
+          </Button>
+        </CardHeader>
       <CardContent>
         <p className="mb-6 text-sm text-muted-foreground">
           Legg til familiemedlemmer for å enkelt bestille tjenester på deres vegne.
@@ -324,6 +325,7 @@ export function FamilyClient({ initialMembers }: FamilyClientProps) {
           </div>
         )}
       </CardContent>
+      </Card>
 
       {/* Edit Dialog */}
       <Dialog open={!!editingMember} onOpenChange={(open) => !open && closeEditDialog()}>
@@ -334,6 +336,6 @@ export function FamilyClient({ initialMembers }: FamilyClientProps) {
           <MemberForm onSubmit={handleEdit} submitLabel="Lagre endringer" />
         </DialogContent>
       </Dialog>
-    </Card>
+    </>
   );
 }
