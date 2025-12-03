@@ -76,7 +76,7 @@ HjemService is a Norwegian home services booking platform enabling customers to 
 | Quote Requests | `/mine-sider/tilbud` | Working |
 | Book from Quote | `/mine-sider/tilbud/[id]/bestill` | Working |
 | Favorites | `/mine-sider/favoritter` | Working |
-| Family | `/mine-sider/familie` | Partial (UI only) |
+| Family | `/mine-sider/familie` | Working |
 | Support | `/mine-sider/hjelp` | Working |
 | Ticket Detail | `/mine-sider/hjelp/[id]` | Working |
 
@@ -276,7 +276,6 @@ HjemService is a Norwegian home services booking platform enabling customers to 
 - Email/SMS notifications
 - Vipps/BankID authentication
 - Password reset
-- Family member database persistence
 
 ---
 

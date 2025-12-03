@@ -196,9 +196,25 @@ model CustomerProfile {
   userId            String   @unique
   favoriteProviders String[]
 
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  addresses    Address[]
-  subscription Subscription?
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  addresses     Address[]
+  subscription  Subscription?
+  familyMembers FamilyMember[]
+}
+
+model FamilyMember {
+  id                String  @id @default(cuid())
+  customerProfileId String
+  name              String
+  phone             String
+  relationship      String
+  street            String
+  postalCode        String
+  city              String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  customerProfile CustomerProfile @relation(fields: [customerProfileId], references: [id], onDelete: Cascade)
 }
 
 model Address {
