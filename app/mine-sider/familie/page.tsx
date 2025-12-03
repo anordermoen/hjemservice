@@ -28,23 +28,9 @@ interface FamilyMember {
   address: string;
 }
 
-// Mock family members
-const initialFamilyMembers: FamilyMember[] = [
-  {
-    id: "1",
-    name: "Kari Nordmann",
-    phone: "987 65 432",
-    relationship: "Mor",
-    address: "Parkveien 10, 0350 Oslo",
-  },
-  {
-    id: "2",
-    name: "Per Nordmann",
-    phone: "976 54 321",
-    relationship: "Far",
-    address: "Parkveien 10, 0350 Oslo",
-  },
-];
+// Family members are stored client-side for now
+// TODO: Add FamilyMember table to database for persistence
+const initialFamilyMembers: FamilyMember[] = [];
 
 export default function FamilyPage() {
   const [familyMembers, setFamilyMembers] = useState(initialFamilyMembers);

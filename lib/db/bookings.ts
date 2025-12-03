@@ -115,6 +115,67 @@ export const getPendingBookings = cache(async (providerId: string) => {
   return bookings;
 });
 
+// Get provider earnings data
+export const getProviderEarnings = cache(async (providerId: string) => {
+  const today = new Date();
+  const firstOfThisMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+  const firstOfLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+
+  const [thisMonthEarnings, lastMonthEarnings, pendingPayout, recentTransactions] = await Promise.all([
+    prisma.booking.aggregate({
+      where: {
+        providerId,
+        status: BookingStatus.COMPLETED,
+        completedAt: { gte: firstOfThisMonth },
+      },
+      _sum: { providerPayout: true },
+    }),
+    prisma.booking.aggregate({
+      where: {
+        providerId,
+        status: BookingStatus.COMPLETED,
+        completedAt: { gte: firstOfLastMonth, lt: firstOfThisMonth },
+      },
+      _sum: { providerPayout: true },
+    }),
+    prisma.booking.aggregate({
+      where: {
+        providerId,
+        status: BookingStatus.CONFIRMED,
+      },
+      _sum: { providerPayout: true },
+    }),
+    prisma.booking.findMany({
+      where: {
+        providerId,
+        status: { in: [BookingStatus.COMPLETED, BookingStatus.CONFIRMED] },
+      },
+      include: {
+        customer: true,
+        services: true,
+      },
+      orderBy: { completedAt: "desc" },
+      take: 10,
+    }),
+  ]);
+
+  return {
+    thisMonth: thisMonthEarnings._sum.providerPayout || 0,
+    lastMonth: lastMonthEarnings._sum.providerPayout || 0,
+    pendingPayout: pendingPayout._sum.providerPayout || 0,
+    transactions: recentTransactions.map((b) => ({
+      id: b.id,
+      date: b.completedAt?.toISOString() || b.scheduledAt.toISOString(),
+      customerName: `${b.customer.firstName} ${b.customer.lastName}`,
+      service: b.services.map((s) => s.name).join(", "),
+      amount: b.totalPrice,
+      fee: b.platformFee,
+      net: b.providerPayout,
+      status: b.status === "COMPLETED" ? "completed" : "pending",
+    })),
+  };
+});
+
 // Get provider stats for dashboard
 export const getProviderStats = cache(async (providerId: string) => {
   const today = new Date();
