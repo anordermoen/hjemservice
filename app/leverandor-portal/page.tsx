@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import {
   Calendar,
   Clock,
@@ -7,80 +8,52 @@ import {
   ArrowRight,
   CheckCircle,
   XCircle,
+  MapPin,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { formatPrice } from "@/lib/utils";
+import { EmptyState } from "@/components/common/EmptyState";
+import { auth } from "@/lib/auth";
+import { getProviderByUserId } from "@/lib/db/providers";
+import {
+  getTodaysBookings,
+  getPendingBookings,
+  getProviderStats,
+} from "@/lib/db/bookings";
+import { getOpenQuoteRequestsForProvider } from "@/lib/db/quotes";
+import { formatPrice, formatTime } from "@/lib/utils";
 
 export const metadata = {
   title: "Leverandørportal | HjemService",
   description: "Administrer din virksomhet på HjemService.",
 };
 
-// Mock data
-const stats = {
-  todayAppointments: 3,
-  pendingRequests: 2,
-  monthlyEarnings: 24500,
-  rating: 4.9,
-  reviewCount: 127,
-};
+export default async function ProviderDashboardPage() {
+  const session = await auth();
 
-const todaysAppointments = [
-  {
-    id: "a1",
-    customerName: "Kari Nordmann",
-    service: "Dameklipp",
-    time: "10:00",
-    address: "Storgata 1, 0182 Oslo",
-  },
-  {
-    id: "a2",
-    customerName: "Ole Hansen",
-    service: "Herreklipp + skjegg",
-    time: "12:00",
-    address: "Parkveien 15, 0350 Oslo",
-  },
-  {
-    id: "a3",
-    customerName: "Lise Pedersen",
-    service: "Klipp + farge",
-    time: "14:30",
-    address: "Bygdøy allé 10, 0262 Oslo",
-  },
-];
+  if (!session?.user) {
+    redirect("/logg-inn?callbackUrl=/leverandor-portal");
+  }
 
-const pendingRequests = [
-  {
-    id: "r1",
-    customerName: "Erik Berg",
-    service: "Herreklipp",
-    date: "2024-12-08",
-    time: "11:00",
-    address: "Grensen 5, 0159 Oslo",
-  },
-  {
-    id: "r2",
-    customerName: "Anne Vik",
-    service: "Dameklipp",
-    date: "2024-12-09",
-    time: "15:00",
-    address: "Karl Johans gate 20, 0159 Oslo",
-  },
-];
+  const provider = await getProviderByUserId(session.user.id);
 
-function formatDate(dateStr: string): string {
-  const date = new Date(dateStr);
-  return date.toLocaleDateString("nb-NO", {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-  });
-}
+  if (!provider) {
+    redirect("/bli-leverandor");
+  }
 
-export default function ProviderDashboardPage() {
+  const [stats, todaysBookings, pendingBookings, quoteRequests] = await Promise.all([
+    getProviderStats(provider.id),
+    getTodaysBookings(provider.id),
+    getPendingBookings(provider.id),
+    getOpenQuoteRequestsForProvider(provider.id),
+  ]);
+
+  // Count quote requests that haven't been responded to yet
+  const unansweredQuotes = quoteRequests.filter(
+    (r) => !r.responses.some((resp) => resp.providerId === provider.id)
+  ).length;
+
   return (
     <div className="space-y-6">
       {/* Stats */}
@@ -103,7 +76,7 @@ export default function ProviderDashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Ventende</p>
-                <p className="text-2xl font-bold">{stats.pendingRequests}</p>
+                <p className="text-2xl font-bold">{stats.pendingRequests + unansweredQuotes}</p>
                 <p className="text-xs text-muted-foreground">forespørsler</p>
               </div>
               <Clock className="h-8 w-8 text-yellow-500" />
@@ -131,7 +104,7 @@ export default function ProviderDashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Vurdering</p>
-                <p className="text-2xl font-bold">{stats.rating}</p>
+                <p className="text-2xl font-bold">{stats.rating.toFixed(1)}</p>
                 <p className="text-xs text-muted-foreground">
                   {stats.reviewCount} vurderinger
                 </p>
@@ -157,39 +130,52 @@ export default function ProviderDashboardPage() {
           </Link>
         </CardHeader>
         <CardContent>
-          {todaysAppointments.length > 0 ? (
+          {todaysBookings.length > 0 ? (
             <div className="space-y-3">
-              {todaysAppointments.map((appointment) => (
-                <div
-                  key={appointment.id}
-                  className="flex items-center justify-between rounded-lg border p-4"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-                      <span className="text-sm font-semibold">
-                        {appointment.time}
-                      </span>
+              {todaysBookings.map((booking) => {
+                const serviceNames = booking.services.map((s) => s.name).join(", ");
+                const customerName = booking.recipientName ||
+                  `${booking.customer.firstName} ${booking.customer.lastName}`;
+
+                return (
+                  <div
+                    key={booking.id}
+                    className="flex items-center justify-between rounded-lg border p-4"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+                        <span className="text-sm font-semibold">
+                          {formatTime(booking.scheduledAt)}
+                        </span>
+                      </div>
+                      <div>
+                        <h3 className="font-medium">{serviceNames}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {customerName}
+                        </p>
+                        {booking.address && (
+                          <p className="text-xs text-muted-foreground flex items-center gap-1">
+                            <MapPin className="h-3 w-3" />
+                            {booking.address.street}, {booking.address.postalCode} {booking.address.city}
+                          </p>
+                        )}
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="font-medium">{appointment.service}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {appointment.customerName}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {appointment.address}
-                      </p>
-                    </div>
+                    <Link href="/leverandor-portal/oppdrag">
+                      <Button variant="outline" size="sm">
+                        Detaljer
+                      </Button>
+                    </Link>
                   </div>
-                  <Button variant="outline" size="sm">
-                    Detaljer
-                  </Button>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
-            <p className="py-8 text-center text-muted-foreground">
-              Ingen avtaler i dag
-            </p>
+            <EmptyState
+              icon={Calendar}
+              title="Ingen avtaler i dag"
+              description="Dine kommende avtaler vil vises her"
+            />
           )}
         </CardContent>
       </Card>
@@ -201,53 +187,94 @@ export default function ProviderDashboardPage() {
             <Clock className="h-5 w-5" />
             Ventende forespørsler
           </CardTitle>
-          <Link href="/leverandor-portal/oppdrag">
-            <Button variant="ghost" size="sm">
-              Se alle
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-          </Link>
+          <div className="flex gap-2">
+            {unansweredQuotes > 0 && (
+              <Link href="/leverandor-portal/tilbud">
+                <Button variant="outline" size="sm">
+                  {unansweredQuotes} tilbudsforespørsler
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
+            )}
+            <Link href="/leverandor-portal/oppdrag">
+              <Button variant="ghost" size="sm">
+                Se alle
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+          </div>
         </CardHeader>
         <CardContent>
-          {pendingRequests.length > 0 ? (
+          {pendingBookings.length > 0 ? (
             <div className="space-y-3">
-              {pendingRequests.map((request) => (
-                <div
-                  key={request.id}
-                  className="flex flex-col gap-4 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between"
-                >
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-medium">{request.service}</h3>
-                      <Badge variant="warning">Venter</Badge>
+              {pendingBookings.slice(0, 5).map((booking) => {
+                const serviceNames = booking.services.map((s) => s.name).join(", ");
+                const customerName = booking.recipientName ||
+                  `${booking.customer.firstName} ${booking.customer.lastName}`;
+
+                return (
+                  <div
+                    key={booking.id}
+                    className="flex flex-col gap-4 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-medium">{serviceNames}</h3>
+                        <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
+                          Venter
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {customerName}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {booking.scheduledAt.toLocaleDateString("nb-NO", {
+                          weekday: "short",
+                          day: "numeric",
+                          month: "short",
+                        })}{" "}
+                        kl. {formatTime(booking.scheduledAt)}
+                      </p>
+                      {booking.address && (
+                        <p className="text-xs text-muted-foreground">
+                          {booking.address.street}, {booking.address.postalCode} {booking.address.city}
+                        </p>
+                      )}
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      {request.customerName}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {formatDate(request.date)} kl. {request.time}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {request.address}
-                    </p>
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline">
+                        <XCircle className="mr-2 h-4 w-4" />
+                        Avslå
+                      </Button>
+                      <Button size="sm">
+                        <CheckCircle className="mr-2 h-4 w-4" />
+                        Godta
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex gap-2">
-                    <Button size="sm" variant="outline">
-                      <XCircle className="mr-2 h-4 w-4" />
-                      Avslå
-                    </Button>
-                    <Button size="sm">
-                      <CheckCircle className="mr-2 h-4 w-4" />
-                      Godta
-                    </Button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
+              {pendingBookings.length > 5 && (
+                <p className="text-sm text-muted-foreground text-center">
+                  +{pendingBookings.length - 5} flere ventende forespørsler
+                </p>
+              )}
+            </div>
+          ) : unansweredQuotes > 0 ? (
+            <div className="py-4 text-center">
+              <p className="text-muted-foreground mb-3">
+                Du har {unansweredQuotes} tilbudsforespørsler som venter på svar
+              </p>
+              <Link href="/leverandor-portal/tilbud">
+                <Button>Se tilbudsforespørsler</Button>
+              </Link>
             </div>
           ) : (
-            <p className="py-8 text-center text-muted-foreground">
-              Ingen ventende forespørsler
-            </p>
+            <EmptyState
+              icon={Clock}
+              title="Ingen ventende forespørsler"
+              description="Nye bestillinger og tilbudsforespørsler vil vises her"
+            />
           )}
         </CardContent>
       </Card>

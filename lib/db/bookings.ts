@@ -72,6 +72,95 @@ export const getUpcomingBookings = cache(async (providerId: string) => {
   return bookings;
 });
 
+// Get today's bookings for a provider
+export const getTodaysBookings = cache(async (providerId: string) => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  const bookings = await prisma.booking.findMany({
+    where: {
+      providerId,
+      status: BookingStatus.CONFIRMED,
+      scheduledAt: {
+        gte: today,
+        lt: tomorrow,
+      },
+    },
+    include: {
+      customer: true,
+      address: true,
+      services: true,
+    },
+    orderBy: { scheduledAt: "asc" },
+  });
+  return bookings;
+});
+
+// Get pending bookings for a provider (awaiting confirmation)
+export const getPendingBookings = cache(async (providerId: string) => {
+  const bookings = await prisma.booking.findMany({
+    where: {
+      providerId,
+      status: BookingStatus.PENDING,
+    },
+    include: {
+      customer: true,
+      address: true,
+      services: true,
+    },
+    orderBy: { scheduledAt: "asc" },
+  });
+  return bookings;
+});
+
+// Get provider stats for dashboard
+export const getProviderStats = cache(async (providerId: string) => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+
+  const [todayCount, pendingCount, monthlyEarnings, provider] = await Promise.all([
+    prisma.booking.count({
+      where: {
+        providerId,
+        status: BookingStatus.CONFIRMED,
+        scheduledAt: { gte: today, lt: tomorrow },
+      },
+    }),
+    prisma.booking.count({
+      where: {
+        providerId,
+        status: BookingStatus.PENDING,
+      },
+    }),
+    prisma.booking.aggregate({
+      where: {
+        providerId,
+        status: BookingStatus.COMPLETED,
+        completedAt: { gte: firstOfMonth },
+      },
+      _sum: { providerPayout: true },
+    }),
+    prisma.serviceProvider.findUnique({
+      where: { id: providerId },
+      select: { rating: true, reviewCount: true },
+    }),
+  ]);
+
+  return {
+    todayAppointments: todayCount,
+    pendingRequests: pendingCount,
+    monthlyEarnings: monthlyEarnings._sum.providerPayout || 0,
+    rating: provider?.rating || 0,
+    reviewCount: provider?.reviewCount || 0,
+  };
+});
+
 // Get cancelled bookings with fees (for provider refund management)
 export const getCancelledBookingsWithFees = cache(
   async (providerId: string) => {
