@@ -25,7 +25,7 @@ import { EmptyState } from "@/components/common/EmptyState";
 import { TipList } from "@/components/common/InfoBox";
 import { auth } from "@/lib/auth";
 import { getBookingsByCustomerId } from "@/lib/db/bookings";
-import { formatPrice, formatDate, formatTime } from "@/lib/utils";
+import { formatPrice, formatDate, formatTime, isWithin24Hours } from "@/lib/utils";
 import { CompletedBookingCard } from "./BookingCardClient";
 
 export const metadata = {
@@ -40,19 +40,12 @@ interface BookingCardProps {
   showActions?: boolean;
 }
 
-function isWithin24Hours(booking: BookingWithProvider): boolean {
-  const now = new Date();
-  const hoursUntilBooking =
-    (booking.scheduledAt.getTime() - now.getTime()) / (1000 * 60 * 60);
-  return hoursUntilBooking < 24;
-}
-
 function BookingCard({ booking, showActions = false }: BookingCardProps) {
   const provider = booking.provider;
   if (!provider) return null;
 
   const initials = `${provider.user.firstName?.[0] || ""}${provider.user.lastName?.[0] || ""}`;
-  const within24Hours = booking.status === "CONFIRMED" && isWithin24Hours(booking);
+  const within24Hours = booking.status === "CONFIRMED" && isWithin24Hours(booking.scheduledAt);
   const serviceNames = booking.services.map((s) => s.name).join(", ");
 
   // Map database status to component status

@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { formatPrice, formatDate, formatTime } from "@/lib/utils";
+import { formatPrice, formatDate, formatTime, isWithin24Hours } from "@/lib/utils";
 
 interface BookingService {
   name: string;
@@ -72,13 +72,6 @@ interface Booking {
 
 interface ProviderBookingsClientProps {
   bookings: Booking[];
-}
-
-function isWithin24Hours(scheduledAt: string): boolean {
-  const now = new Date();
-  const scheduled = new Date(scheduledAt);
-  const hoursUntil = (scheduled.getTime() - now.getTime()) / (1000 * 60 * 60);
-  return hoursUntil < 24 && hoursUntil > 0;
 }
 
 function BookingCard({

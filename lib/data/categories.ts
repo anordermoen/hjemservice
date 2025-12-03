@@ -44,11 +44,3 @@ export const categories: ServiceCategory[] = [
     description: "Hagearbeid og vedlikehold",
   },
 ];
-
-export function getCategoryById(id: string): ServiceCategory | undefined {
-  return categories.find((cat) => cat.id === id);
-}
-
-export function getCategoryByName(name: string): ServiceCategory | undefined {
-  return categories.find((cat) => cat.name.toLowerCase() === name.toLowerCase());
-}

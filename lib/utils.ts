@@ -48,16 +48,6 @@ export function formatDateWithYear(date: Date): string {
   }).format(date);
 }
 
-/** Full date with year: "mandag 2. desember 2024" */
-export function formatDateFull(date: Date): string {
-  return new Intl.DateTimeFormat("nb-NO", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  }).format(date);
-}
-
 /** Time only: "14:30" */
 export function formatTime(date: Date | string): string {
   if (typeof date === "string") {
@@ -66,13 +56,6 @@ export function formatTime(date: Date | string): string {
   return new Intl.DateTimeFormat("nb-NO", {
     hour: "2-digit",
     minute: "2-digit",
-  }).format(date);
-}
-
-/** Weekday only: "man" */
-export function formatWeekday(date: Date): string {
-  return new Intl.DateTimeFormat("nb-NO", {
-    weekday: "short",
   }).format(date);
 }
 
@@ -90,16 +73,10 @@ export function formatDuration(minutes: number): string {
   return `${hours}t ${mins}min`;
 }
 
-// ============================================
-// Icon Sizes (for consistency)
-// ============================================
-
-export const ICON_SIZES = {
-  xs: "h-3 w-3",
-  sm: "h-4 w-4",
-  md: "h-5 w-5",
-  lg: "h-6 w-6",
-  xl: "h-8 w-8",
-} as const;
-
-export type IconSize = keyof typeof ICON_SIZES;
+/** Check if a date is within 24 hours from now */
+export function isWithin24Hours(date: Date | string): boolean {
+  const now = new Date();
+  const targetDate = typeof date === "string" ? new Date(date) : date;
+  const hoursUntil = (targetDate.getTime() - now.getTime()) / (1000 * 60 * 60);
+  return hoursUntil >= 0 && hoursUntil < 24;
+}
