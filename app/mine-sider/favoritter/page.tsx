@@ -1,18 +1,79 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProviderCard } from "@/components/common/ProviderCard";
-import { providers } from "@/lib/data/providers";
+import { auth } from "@/lib/auth";
+import { getFavoriteProviders } from "@/lib/db/users";
+import { ServiceProvider } from "@/types";
 
 export const metadata = {
   title: "Favoritter | HjemService",
   description: "Se dine lagrede leverandører.",
 };
 
-export default function FavoritesPage() {
-  // Mock: first 2 providers are favorites
-  const favoriteProviders = providers.slice(0, 2);
+export default async function FavoritesPage() {
+  const session = await auth();
+
+  if (!session?.user) {
+    redirect("/logg-inn?callbackUrl=/mine-sider/favoritter");
+  }
+
+  const dbProviders = await getFavoriteProviders(session.user.id);
+
+  // Transform to ServiceProvider format for ProviderCard
+  const favoriteProviders: ServiceProvider[] = dbProviders.map((p) => ({
+    userId: p.id, // Use provider id for compatibility with ProviderCard link
+    businessName: p.businessName || undefined,
+    bio: p.bio,
+    categories: p.categories.map((c) => c.slug),
+    services: p.services.map((s) => ({
+      id: s.id,
+      name: s.name,
+      price: s.price,
+      duration: s.duration,
+      category: s.categoryId,
+      description: s.description || undefined,
+    })),
+    areasServed: p.areasServed,
+    rating: p.rating,
+    reviewCount: p.reviewCount,
+    verified: p.verified,
+    insurance: p.insurance,
+    policeCheck: p.policeCheck,
+    yearsExperience: p.yearsExperience,
+    availability: {
+      schedule: {
+        monday: [],
+        tuesday: [],
+        wednesday: [],
+        thursday: [],
+        friday: [],
+        saturday: [],
+        sunday: [],
+      },
+      blockedDates: [],
+      leadTime: p.leadTime,
+    },
+    createdAt: p.createdAt,
+    approvedAt: p.approvedAt || undefined,
+    user: {
+      id: p.user.id,
+      email: p.user.email,
+      phone: p.user.phone || "",
+      firstName: p.user.firstName || "",
+      lastName: p.user.lastName || "",
+      role: "provider" as const,
+      createdAt: p.user.createdAt,
+      avatarUrl: p.user.avatarUrl || undefined,
+    },
+    languages: p.languages.map((l) => ({
+      code: l.code,
+      name: l.name,
+      proficiency: l.proficiency as "morsmål" | "flytende" | "god" | "grunnleggende",
+    })),
+  }));
 
   return (
     <Card>

@@ -3,7 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Eye, EyeOff, Check } from "lucide-react";
+import { Eye, EyeOff, Check, Loader2 } from "lucide-react";
+import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -14,6 +15,8 @@ import { Separator } from "@/components/ui/separator";
 export default function RegisterPage() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -23,10 +26,59 @@ export default function RegisterPage() {
     acceptTerms: false,
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // In a real app, this would create an account via API
-    router.push("/mine-sider");
+    setError("");
+    setIsLoading(true);
+
+    // Validate password requirements
+    if (formData.password.length < 8) {
+      setError("Passordet må være minst 8 tegn");
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      // Create user via API
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          phone: formData.phone,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "Kunne ikke opprette bruker");
+        setIsLoading(false);
+        return;
+      }
+
+      // Sign in the new user
+      const result = await signIn("credentials", {
+        email: formData.email,
+        password: formData.password,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        setError("Konto opprettet, men kunne ikke logge inn. Prøv å logge inn manuelt.");
+        setIsLoading(false);
+        return;
+      }
+
+      router.push("/mine-sider");
+      router.refresh();
+    } catch {
+      setError("Noe gikk galt. Prøv igjen.");
+      setIsLoading(false);
+    }
   };
 
   const passwordRequirements = [
@@ -49,6 +101,12 @@ export default function RegisterPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
+            {error && (
+              <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+                {error}
+              </div>
+            )}
+
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <Label htmlFor="firstName">Fornavn</Label>
@@ -60,6 +118,7 @@ export default function RegisterPage() {
                   }
                   placeholder="Ola"
                   required
+                  disabled={isLoading}
                 />
               </div>
               <div>
@@ -72,6 +131,7 @@ export default function RegisterPage() {
                   }
                   placeholder="Nordmann"
                   required
+                  disabled={isLoading}
                 />
               </div>
             </div>
@@ -87,6 +147,7 @@ export default function RegisterPage() {
                 }
                 placeholder="din@epost.no"
                 required
+                disabled={isLoading}
               />
             </div>
 
@@ -101,6 +162,7 @@ export default function RegisterPage() {
                 }
                 placeholder="912 34 567"
                 required
+                disabled={isLoading}
               />
             </div>
 
@@ -116,6 +178,7 @@ export default function RegisterPage() {
                   }
                   placeholder="••••••••"
                   required
+                  disabled={isLoading}
                 />
                 <button
                   type="button"
@@ -163,6 +226,7 @@ export default function RegisterPage() {
                 onCheckedChange={(checked) =>
                   setFormData({ ...formData, acceptTerms: checked as boolean })
                 }
+                disabled={isLoading}
               />
               <Label htmlFor="terms" className="text-sm leading-tight">
                 Jeg godtar{" "}
@@ -180,9 +244,16 @@ export default function RegisterPage() {
               type="submit"
               className="w-full"
               size="lg"
-              disabled={!formData.acceptTerms}
+              disabled={!formData.acceptTerms || isLoading}
             >
-              Opprett konto
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Oppretter konto...
+                </>
+              ) : (
+                "Opprett konto"
+              )}
             </Button>
           </form>
 
@@ -192,7 +263,7 @@ export default function RegisterPage() {
             <Separator className="flex-1" />
           </div>
 
-          <Button variant="outline" className="w-full" size="lg">
+          <Button variant="outline" className="w-full" size="lg" disabled>
             <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24">
               <path
                 fill="currentColor"
@@ -211,7 +282,7 @@ export default function RegisterPage() {
                 d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
               />
             </svg>
-            Fortsett med Google
+            Vipps/BankID (kommer snart)
           </Button>
 
           <div className="mt-6 text-center text-sm">

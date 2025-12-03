@@ -1,34 +1,22 @@
-"use client";
-
-import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { Search, MapPin, CheckCircle, Shield, Star, ArrowRight, FileCheck, Languages } from "lucide-react";
+import { CheckCircle, Shield, Star, ArrowRight, FileCheck, Languages } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { ServiceCard } from "@/components/common/ServiceCard";
 import { Rating } from "@/components/common/Rating";
 import { IncomeCalculator } from "@/components/landing/IncomeCalculator";
-import { categories } from "@/lib/data/categories";
-import { getFeaturedProviders } from "@/lib/data/providers";
+import { SearchForm } from "@/components/home/SearchForm";
+import { getCategories } from "@/lib/db/categories";
+import { getFeaturedProviders } from "@/lib/db/providers";
 import { formatPrice } from "@/lib/utils";
 
-export default function HomePage() {
-  const router = useRouter();
-  const [location, setLocation] = useState("");
-  const featuredProviders = getFeaturedProviders();
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    const params = new URLSearchParams();
-    if (location.trim()) {
-      params.set("sted", location.trim());
-    }
-    router.push(`/tjenester${params.toString() ? `?${params.toString()}` : ""}`);
-  };
+export default async function HomePage() {
+  const [categories, featuredProviders] = await Promise.all([
+    getCategories(),
+    getFeaturedProviders(4),
+  ]);
 
   return (
     <div className="flex flex-col">
@@ -43,24 +31,7 @@ export default function HomePage() {
               Book frisør, renhold, håndverker og mer – enkelt og trygt
             </p>
 
-            {/* Search bar */}
-            <form onSubmit={handleSearch} className="mx-auto flex max-w-xl flex-col gap-3 sm:flex-row">
-              <div className="relative flex-1">
-                <MapPin className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-                <Input
-                  type="text"
-                  placeholder="Skriv inn postnummer eller sted"
-                  className="h-12 pl-10"
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  aria-label="Søk etter sted eller postnummer"
-                />
-              </div>
-              <Button type="submit" size="xl" className="w-full sm:w-auto">
-                <Search className="mr-2 h-5 w-5" aria-hidden="true" />
-                Finn tjenester
-              </Button>
-            </form>
+            <SearchForm />
           </div>
         </div>
       </section>
@@ -79,7 +50,10 @@ export default function HomePage() {
 
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
             {categories.map((category) => (
-              <ServiceCard key={category.id} category={category} />
+              <ServiceCard
+                key={category.id}
+                category={category}
+              />
             ))}
           </div>
         </div>
@@ -205,22 +179,22 @@ export default function HomePage() {
               const minPrice = provider.services.length > 0
                 ? Math.min(...provider.services.map((s) => s.price))
                 : 0;
-              const initials = `${provider.user.firstName[0]}${provider.user.lastName[0]}`;
+              const initials = `${provider.user.firstName?.[0] || ""}${provider.user.lastName?.[0] || ""}`;
               const fluentLanguages = provider.languages?.filter(
                 (l) => l.proficiency === "morsmål" || l.proficiency === "flytende"
               ) || [];
 
               return (
                 <Link
-                  key={provider.userId}
-                  href={`/leverandor/${provider.userId}`}
+                  key={provider.id}
+                  href={`/leverandor/${provider.id}`}
                 >
                   <Card className="h-full transition-all hover:shadow-md">
                     <CardContent className="p-4">
                       <div className="mb-3 flex items-center gap-3">
                         <Avatar className="h-12 w-12">
                           <AvatarImage
-                            src={provider.user.avatarUrl}
+                            src={provider.user.avatarUrl || undefined}
                             alt=""
                           />
                           <AvatarFallback>{initials}</AvatarFallback>

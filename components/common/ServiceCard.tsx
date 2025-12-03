@@ -28,7 +28,7 @@ export function ServiceCard({ category }: ServiceCardProps) {
   const Icon = iconMap[category.icon] || Hammer;
 
   return (
-    <Link href={`/tjenester/${category.id}`}>
+    <Link href={`/tjenester/${category.slug}`}>
       <Card className="group h-full transition-all hover:shadow-md hover:border-primary/50">
         <CardContent className="flex flex-col items-center p-6 text-center">
           <div className="mb-4 rounded-full bg-primary/10 p-4 transition-colors group-hover:bg-primary/20">

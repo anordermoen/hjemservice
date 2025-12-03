@@ -1,7 +1,9 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import {
   LayoutDashboard,
   Calendar,
@@ -9,6 +11,7 @@ import {
   Heart,
   Users,
   Settings,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -27,13 +30,33 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { data: session, status } = useSession();
+
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/logg-inn?callbackUrl=" + encodeURIComponent(pathname));
+    }
+  }, [status, router, pathname]);
+
+  if (status === "loading") {
+    return (
+      <div className="container mx-auto flex min-h-[50vh] items-center justify-center px-4 py-8">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (status === "unauthenticated") {
+    return null;
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
         <h1 className="text-2xl font-bold">Mine sider</h1>
         <p className="text-muted-foreground">
-          Administrer dine bestillinger og innstillinger
+          Hei, {session?.user?.name || session?.user?.email}! Administrer dine bestillinger og innstillinger.
         </p>
       </div>
 

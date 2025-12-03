@@ -87,7 +87,8 @@ export interface Certificate {
 
 export interface ServiceProvider {
   userId: string;
-  businessName?: string;
+  id?: string; // Optional for backwards compatibility
+  businessName?: string | null;
   bio: string;
   categories: string[];
   services: Service[];
@@ -100,13 +101,13 @@ export interface ServiceProvider {
   yearsExperience: number;
   availability: Availability;
   createdAt: Date;
-  approvedAt?: Date;
+  approvedAt?: Date | null;
   user: User;
   // New fields for transparency
   languages: Language[];
   certificates?: Certificate[];
-  nationality?: string; // Country name
-  education?: string; // Brief education description
+  nationality?: string | null;
+  education?: string | null;
 }
 
 export interface BookedService {
@@ -170,6 +171,7 @@ export interface Subscription {
 
 export interface ServiceCategory {
   id: string;
+  slug: string;
   name: string;
   icon: string;
   description: string;

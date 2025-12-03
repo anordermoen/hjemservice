@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import {
   Clock,
   MapPin,
@@ -6,13 +7,11 @@ import {
   AlertTriangle,
   Calendar,
   Star,
-  Languages,
   CheckCircle,
   ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -24,31 +23,46 @@ import {
 import { StatusBadge, BookingStatus } from "@/components/common/StatusBadge";
 import { EmptyState } from "@/components/common/EmptyState";
 import { TipList } from "@/components/common/InfoBox";
-import { getBookingsByCustomerId, isWithin24Hours } from "@/lib/data/bookings";
-import { getProviderById } from "@/lib/data/providers";
+import { auth } from "@/lib/auth";
+import { getBookingsByCustomerId } from "@/lib/db/bookings";
 import { formatPrice, formatDate, formatTime } from "@/lib/utils";
-import { Booking } from "@/types";
+import { CompletedBookingCard } from "./BookingCardClient";
 
 export const metadata = {
   title: "Mine bestillinger | HjemService",
   description: "Se og administrer dine bestillinger.",
 };
 
+type BookingWithProvider = Awaited<ReturnType<typeof getBookingsByCustomerId>>[0];
+
 interface BookingCardProps {
-  booking: Booking;
-  provider: ReturnType<typeof getProviderById>;
+  booking: BookingWithProvider;
   showActions?: boolean;
 }
 
-function BookingCard({ booking, provider, showActions = false }: BookingCardProps) {
+function isWithin24Hours(booking: BookingWithProvider): boolean {
+  const now = new Date();
+  const hoursUntilBooking =
+    (booking.scheduledAt.getTime() - now.getTime()) / (1000 * 60 * 60);
+  return hoursUntilBooking < 24;
+}
+
+function BookingCard({ booking, showActions = false }: BookingCardProps) {
+  const provider = booking.provider;
   if (!provider) return null;
 
-  const initials = `${provider.user.firstName[0]}${provider.user.lastName[0]}`;
-  const within24Hours = booking.status === "confirmed" && isWithin24Hours(booking);
+  const initials = `${provider.user.firstName?.[0] || ""}${provider.user.lastName?.[0] || ""}`;
+  const within24Hours = booking.status === "CONFIRMED" && isWithin24Hours(booking);
   const serviceNames = booking.services.map((s) => s.name).join(", ");
-  const fluentLanguages = provider.languages?.filter(
-    (l) => l.proficiency === "morsmål" || l.proficiency === "flytende"
-  ) || [];
+
+  // Map database status to component status
+  const statusMap: Record<string, BookingStatus> = {
+    PENDING: "pending",
+    CONFIRMED: "confirmed",
+    COMPLETED: "completed",
+    CANCELLED: "cancelled",
+  };
+  const displayStatus = statusMap[booking.status] || "pending";
 
   return (
     <div className="rounded-lg border p-4">
@@ -58,9 +72,9 @@ function BookingCard({ booking, provider, showActions = false }: BookingCardProp
           <h3 className="font-medium">{serviceNames}</h3>
           <StatusBadge
             type="booking"
-            status={booking.status as BookingStatus}
+            status={displayStatus}
             customLabel={
-              booking.status === "cancelled" &&
+              booking.status === "CANCELLED" &&
               booking.cancellation?.wasWithin24Hours &&
               booking.cancellation.cancellationFee > 0
                 ? `Avbestilt (gebyr ${formatPrice(booking.cancellation.cancellationFee)})`
@@ -73,15 +87,15 @@ function BookingCard({ booking, provider, showActions = false }: BookingCardProp
 
       {/* Provider info */}
       <div className="flex items-start gap-3 mb-3 p-3 bg-muted/30 rounded-lg">
-        <Link href={`/leverandor/${provider.userId}`}>
+        <Link href={`/leverandor/${provider.id}`}>
           <Avatar className="h-12 w-12 cursor-pointer hover:ring-2 hover:ring-primary transition-all">
-            <AvatarImage src={provider.user.avatarUrl} alt="" />
+            <AvatarImage src={provider.user.avatarUrl || undefined} alt="" />
             <AvatarFallback>{initials}</AvatarFallback>
           </Avatar>
         </Link>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <Link href={`/leverandor/${provider.userId}`} className="hover:underline">
+            <Link href={`/leverandor/${provider.id}`} className="hover:underline">
               <span className="font-medium">
                 {provider.user.firstName} {provider.user.lastName}
               </span>
@@ -99,15 +113,9 @@ function BookingCard({ booking, provider, showActions = false }: BookingCardProp
               <span className="font-medium">{provider.rating.toFixed(1)}</span>
               <span className="text-muted-foreground">({provider.reviewCount})</span>
             </span>
-            {fluentLanguages.length > 0 && (
-              <span className="flex items-center gap-1 text-muted-foreground">
-                <Languages className="h-3.5 w-3.5" />
-                {fluentLanguages.map((l) => l.name).join(", ")}
-              </span>
-            )}
           </div>
         </div>
-        <Link href={`/leverandor/${provider.userId}`}>
+        <Link href={`/leverandor/${provider.id}`}>
           <Button variant="ghost" size="sm" className="shrink-0">
             <ExternalLink className="h-4 w-4" />
           </Button>
@@ -120,10 +128,12 @@ function BookingCard({ booking, provider, showActions = false }: BookingCardProp
           <Clock className="h-4 w-4" aria-hidden="true" />
           {formatDate(booking.scheduledAt)} kl. {formatTime(booking.scheduledAt)}
         </span>
-        <span className="flex items-center gap-1">
-          <MapPin className="h-4 w-4" aria-hidden="true" />
-          {booking.address.street}, {booking.address.postalCode} {booking.address.city}
-        </span>
+        {booking.address && (
+          <span className="flex items-center gap-1">
+            <MapPin className="h-4 w-4" aria-hidden="true" />
+            {booking.address.street}, {booking.address.postalCode} {booking.address.city}
+          </span>
+        )}
       </div>
 
       {within24Hours && (
@@ -141,7 +151,7 @@ function BookingCard({ booking, provider, showActions = false }: BookingCardProp
 
       {/* Actions */}
       <div className="flex items-center gap-2 mt-4 pt-3 border-t">
-        {booking.status === "completed" && (
+        {booking.status === "COMPLETED" && (
           <>
             <Button size="sm">Gi vurdering</Button>
             <Link href={`/booking/${booking.providerId}`}>
@@ -151,9 +161,9 @@ function BookingCard({ booking, provider, showActions = false }: BookingCardProp
             </Link>
           </>
         )}
-        {booking.status === "confirmed" && (
+        {booking.status === "CONFIRMED" && (
           <>
-            <Link href={`/leverandor/${provider.userId}`}>
+            <Link href={`/leverandor/${provider.id}`}>
               <Button variant="outline" size="sm">
                 Se profil
               </Button>
@@ -179,8 +189,8 @@ function BookingCard({ booking, provider, showActions = false }: BookingCardProp
             )}
           </>
         )}
-        {booking.status === "cancelled" && (
-          <Link href={`/leverandor/${provider.userId}`}>
+        {booking.status === "CANCELLED" && (
+          <Link href={`/leverandor/${provider.id}`}>
             <Button variant="outline" size="sm">
               Se profil
             </Button>
@@ -191,16 +201,20 @@ function BookingCard({ booking, provider, showActions = false }: BookingCardProp
   );
 }
 
-export default function BookingsPage() {
-  // In a real app, this would get the current user's ID from auth
-  const currentUserId = "c1";
-  const allBookings = getBookingsByCustomerId(currentUserId);
+export default async function BookingsPage() {
+  const session = await auth();
+
+  if (!session?.user) {
+    redirect("/logg-inn?callbackUrl=/mine-sider/bestillinger");
+  }
+
+  const allBookings = await getBookingsByCustomerId(session.user.id);
 
   const upcoming = allBookings.filter(
-    (b) => b.status === "confirmed" && b.scheduledAt > new Date()
+    (b) => b.status === "CONFIRMED" && b.scheduledAt > new Date()
   );
-  const completed = allBookings.filter((b) => b.status === "completed");
-  const cancelled = allBookings.filter((b) => b.status === "cancelled");
+  const completed = allBookings.filter((b) => b.status === "COMPLETED");
+  const cancelled = allBookings.filter((b) => b.status === "CANCELLED");
 
   return (
     <Card>
@@ -221,7 +235,6 @@ export default function BookingsPage() {
                 <BookingCard
                   key={booking.id}
                   booking={booking}
-                  provider={getProviderById(booking.providerId)}
                   showActions
                 />
               ))
@@ -241,10 +254,30 @@ export default function BookingsPage() {
           <TabsContent value="completed" className="space-y-4">
             {completed.length > 0 ? (
               completed.map((booking) => (
-                <BookingCard
+                <CompletedBookingCard
                   key={booking.id}
-                  booking={booking}
-                  provider={getProviderById(booking.providerId)}
+                  booking={{
+                    id: booking.id,
+                    status: booking.status,
+                    totalPrice: booking.totalPrice,
+                    scheduledAt: booking.scheduledAt.toISOString(),
+                    providerId: booking.providerId,
+                    hasReview: !!booking.review,
+                    provider: {
+                      id: booking.provider.id,
+                      businessName: booking.provider.businessName,
+                      rating: booking.provider.rating,
+                      reviewCount: booking.provider.reviewCount,
+                      verified: booking.provider.verified,
+                      user: {
+                        firstName: booking.provider.user.firstName,
+                        lastName: booking.provider.user.lastName,
+                        avatarUrl: booking.provider.user.avatarUrl,
+                      },
+                    },
+                    address: booking.address,
+                    services: booking.services.map((s) => ({ name: s.name })),
+                  }}
                 />
               ))
             ) : (
@@ -258,7 +291,6 @@ export default function BookingsPage() {
                 <BookingCard
                   key={booking.id}
                   booking={booking}
-                  provider={getProviderById(booking.providerId)}
                 />
               ))
             ) : (

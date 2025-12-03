@@ -1,7 +1,9 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import {
   LayoutDashboard,
   CalendarDays,
@@ -9,8 +11,12 @@ import {
   FileQuestion,
   Wallet,
   User,
+  Loader2,
+  AlertCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 const navItems = [
   { href: "/leverandor-portal", label: "Dashboard", icon: LayoutDashboard },
@@ -27,13 +33,58 @@ export default function ProviderPortalLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { data: session, status } = useSession();
+
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/logg-inn?callbackUrl=" + encodeURIComponent(pathname));
+    }
+  }, [status, router, pathname]);
+
+  if (status === "loading") {
+    return (
+      <div className="container mx-auto flex min-h-[50vh] items-center justify-center px-4 py-8">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (status === "unauthenticated") {
+    return null;
+  }
+
+  // Check if user is a provider
+  if (session?.user?.role !== "PROVIDER" && session?.user?.role !== "ADMIN") {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <Card>
+          <CardContent className="flex flex-col items-center p-8 text-center">
+            <AlertCircle className="mb-4 h-12 w-12 text-muted-foreground" />
+            <h2 className="mb-2 text-xl font-semibold">Ingen tilgang</h2>
+            <p className="mb-6 text-muted-foreground">
+              Denne siden er kun for registrerte leverandører.
+            </p>
+            <div className="flex gap-4">
+              <Link href="/bli-leverandor">
+                <Button>Bli leverandør</Button>
+              </Link>
+              <Link href="/">
+                <Button variant="outline">Gå til forsiden</Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
         <h1 className="text-2xl font-bold">Leverandørportal</h1>
         <p className="text-muted-foreground">
-          Administrer din virksomhet på HjemService
+          Hei, {session?.user?.name}! Administrer din virksomhet på HjemService.
         </p>
       </div>
 

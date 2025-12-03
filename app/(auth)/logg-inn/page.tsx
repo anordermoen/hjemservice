@@ -1,27 +1,53 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { Eye, EyeOff } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get("callbackUrl") || "/mine-sider";
+
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // In a real app, this would authenticate with an API
-    router.push("/mine-sider");
+    setError("");
+    setIsLoading(true);
+
+    try {
+      const result = await signIn("credentials", {
+        email: formData.email,
+        password: formData.password,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        setError("Feil e-post eller passord");
+        setIsLoading(false);
+        return;
+      }
+
+      router.push(callbackUrl);
+      router.refresh();
+    } catch {
+      setError("Noe gikk galt. Prøv igjen.");
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -38,6 +64,12 @@ export default function LoginPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
+            {error && (
+              <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+                {error}
+              </div>
+            )}
+
             <div>
               <Label htmlFor="email">E-post</Label>
               <Input
@@ -49,6 +81,7 @@ export default function LoginPage() {
                 }
                 placeholder="din@epost.no"
                 required
+                disabled={isLoading}
               />
             </div>
 
@@ -72,6 +105,7 @@ export default function LoginPage() {
                   }
                   placeholder="••••••••"
                   required
+                  disabled={isLoading}
                 />
                 <button
                   type="button"
@@ -87,8 +121,15 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <Button type="submit" className="w-full" size="lg">
-              Logg inn
+            <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Logger inn...
+                </>
+              ) : (
+                "Logg inn"
+              )}
             </Button>
           </form>
 
@@ -98,7 +139,7 @@ export default function LoginPage() {
             <Separator className="flex-1" />
           </div>
 
-          <Button variant="outline" className="w-full" size="lg">
+          <Button variant="outline" className="w-full" size="lg" disabled>
             <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24">
               <path
                 fill="currentColor"
@@ -117,7 +158,7 @@ export default function LoginPage() {
                 d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
               />
             </svg>
-            Fortsett med Google
+            Vipps/BankID (kommer snart)
           </Button>
 
           <div className="mt-6 text-center text-sm">
@@ -133,8 +174,27 @@ export default function LoginPage() {
               Bli leverandør
             </Link>
           </div>
+
+          {/* Demo accounts hint */}
+          <div className="mt-6 rounded-md bg-muted p-3 text-xs text-muted-foreground">
+            <p className="font-medium mb-1">Demo-kontoer:</p>
+            <p>Kunde: kunde@example.com / kunde123</p>
+            <p>Leverandør: maria@example.com / leverandor123</p>
+          </div>
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="container mx-auto flex min-h-[calc(100vh-200px)] items-center justify-center px-4 py-8">
+        <div className="w-full max-w-md h-96 animate-pulse bg-muted rounded-lg" />
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   );
 }

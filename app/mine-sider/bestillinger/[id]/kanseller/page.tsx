@@ -1,29 +1,7 @@
-"use client";
-
-import { useState, use } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
-import {
-  ArrowLeft,
-  AlertTriangle,
-  Calendar,
-  Clock,
-  MapPin,
-  Star,
-  Languages,
-  CheckCircle,
-  ExternalLink,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Separator } from "@/components/ui/separator";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { getBookingById, calculateCancellationFee, isWithin24Hours } from "@/lib/data/bookings";
-import { getProviderById } from "@/lib/data/providers";
-import { formatPrice, formatDate } from "@/lib/utils";
+import { notFound, redirect } from "next/navigation";
+import { auth } from "@/lib/auth";
+import { getBookingById, calculateCancellationFee } from "@/lib/db/bookings";
+import { CancelBookingClient } from "./CancelBookingClient";
 
 interface CancelBookingPageProps {
   params: Promise<{
@@ -31,261 +9,71 @@ interface CancelBookingPageProps {
   }>;
 }
 
-export default function CancelBookingPage({ params }: CancelBookingPageProps) {
-  const { id } = use(params);
-  const router = useRouter();
-  const [reason, setReason] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+export default async function CancelBookingPage({ params }: CancelBookingPageProps) {
+  const session = await auth();
 
-  const booking = getBookingById(id);
-  const provider = booking ? getProviderById(booking.providerId) : null;
-
-  if (!booking || !provider) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <p>Bestilling ikke funnet</p>
-      </div>
-    );
+  if (!session?.user) {
+    redirect("/logg-inn?callbackUrl=/mine-sider/bestillinger");
   }
 
-  if (booking.status !== "confirmed") {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <p>Denne bestillingen kan ikke kanselleres</p>
-      </div>
-    );
+  const { id } = await params;
+  const booking = await getBookingById(id);
+
+  if (!booking) {
+    notFound();
   }
 
-  const within24Hours = isWithin24Hours(booking);
-  const cancellationFee = calculateCancellationFee(booking);
-  const refundAmount = booking.totalPrice - cancellationFee;
-  const initials = `${provider.user.firstName[0]}${provider.user.lastName[0]}`;
+  // Check if user owns this booking
+  if (booking.customerId !== session.user.id) {
+    notFound();
+  }
 
-  const handleCancel = async () => {
-    setIsSubmitting(true);
+  if (booking.status !== "CONFIRMED") {
+    redirect("/mine-sider/bestillinger");
+  }
 
-    // In a real app, this would call an API
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+  const now = new Date();
+  const hoursUntilBooking =
+    (booking.scheduledAt.getTime() - now.getTime()) / (1000 * 60 * 60);
+  const within24Hours = hoursUntilBooking < 24;
+  const cancellationFee = calculateCancellationFee(booking.scheduledAt, booking.totalPrice);
 
-    // Redirect to confirmation
-    router.push(`/mine-sider/bestillinger/${id}/kansellert`);
+  // Transform for client component
+  const clientBooking = {
+    id: booking.id,
+    totalPrice: booking.totalPrice,
+    scheduledAt: booking.scheduledAt,
+    paymentMethod: booking.paymentMethod,
+    services: booking.services.map((s) => ({
+      name: s.name,
+      price: s.price,
+    })),
+    address: booking.address
+      ? {
+          street: booking.address.street,
+          postalCode: booking.address.postalCode,
+          city: booking.address.city,
+        }
+      : null,
+    provider: {
+      id: booking.provider.id,
+      businessName: booking.provider.businessName,
+      rating: booking.provider.rating,
+      reviewCount: booking.provider.reviewCount,
+      verified: booking.provider.verified,
+      user: {
+        firstName: booking.provider.user.firstName,
+        lastName: booking.provider.user.lastName,
+        avatarUrl: booking.provider.user.avatarUrl,
+      },
+    },
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mx-auto max-w-2xl">
-        {/* Back button */}
-        <Link
-          href="/mine-sider/bestillinger"
-          className="mb-6 inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" aria-hidden="true" />
-          Tilbake til bestillinger
-        </Link>
-
-        <h1 className="mb-6 text-2xl font-bold">Kanseller bestilling</h1>
-
-        {/* Booking details */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="text-lg">Bestillingsdetaljer</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {/* Provider info */}
-            <div className="flex items-start gap-3 mb-4 p-3 bg-muted/30 rounded-lg">
-              <Link href={`/leverandor/${provider.userId}`}>
-                <Avatar className="h-12 w-12 cursor-pointer hover:ring-2 hover:ring-primary transition-all">
-                  <AvatarImage src={provider.user.avatarUrl} alt="" />
-                  <AvatarFallback>{initials}</AvatarFallback>
-                </Avatar>
-              </Link>
-              <div className="flex-1">
-                <div className="flex items-center gap-1.5">
-                  <Link href={`/leverandor/${provider.userId}`} className="hover:underline">
-                    <p className="font-medium">
-                      {provider.user.firstName} {provider.user.lastName}
-                    </p>
-                  </Link>
-                  {provider.verified && (
-                    <CheckCircle className="h-4 w-4 text-primary" />
-                  )}
-                </div>
-                {provider.businessName && (
-                  <p className="text-sm text-muted-foreground">
-                    {provider.businessName}
-                  </p>
-                )}
-                <div className="flex items-center gap-3 mt-1 text-sm">
-                  <span className="flex items-center gap-1">
-                    <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                    <span className="font-medium">{provider.rating.toFixed(1)}</span>
-                    <span className="text-muted-foreground">({provider.reviewCount})</span>
-                  </span>
-                  {provider.languages && provider.languages.length > 0 && (
-                    <span className="flex items-center gap-1 text-muted-foreground">
-                      <Languages className="h-3.5 w-3.5" />
-                      {provider.languages
-                        .filter((l) => l.proficiency === "morsmål" || l.proficiency === "flytende")
-                        .slice(0, 2)
-                        .map((l) => l.name)
-                        .join(", ")}
-                    </span>
-                  )}
-                </div>
-              </div>
-              <Link href={`/leverandor/${provider.userId}`}>
-                <Button variant="ghost" size="sm">
-                  <ExternalLink className="h-4 w-4" />
-                </Button>
-              </Link>
-            </div>
-
-            <div className="space-y-3 text-sm">
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                <span>{formatDate(booking.scheduledAt)}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                <span>
-                  {booking.scheduledAt.toLocaleTimeString("nb-NO", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                <span>
-                  {booking.address.street}, {booking.address.postalCode} {booking.address.city}
-                </span>
-              </div>
-            </div>
-
-            <Separator className="my-4" />
-
-            <div className="space-y-2">
-              {booking.services.map((service) => (
-                <div key={service.serviceId} className="flex justify-between text-sm">
-                  <span>{service.name}</span>
-                  <span>{formatPrice(service.price)}</span>
-                </div>
-              ))}
-              <div className="flex justify-between font-medium pt-2 border-t">
-                <span>Totalt betalt</span>
-                <span>{formatPrice(booking.totalPrice)}</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Cancellation warning */}
-        {within24Hours ? (
-          <Card className="mb-6 border-amber-500">
-            <CardContent className="p-4">
-              <div className="flex gap-3">
-                <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" aria-hidden="true" />
-                <div>
-                  <p className="font-medium text-amber-700">
-                    Avbestilling innen 24 timer
-                  </p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Siden det er mindre enn 24 timer til avtalt tid, vil du bli belastet et avbestillingsgebyr på 50% av totalbeløpet.
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <Card className="mb-6 border-green-500">
-            <CardContent className="p-4">
-              <div className="flex gap-3">
-                <div className="h-5 w-5 rounded-full bg-green-500 flex items-center justify-center shrink-0 mt-0.5">
-                  <span className="text-white text-xs">✓</span>
-                </div>
-                <div>
-                  <p className="font-medium text-green-700">
-                    Gratis avbestilling
-                  </p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Du kan avbestille uten gebyr siden det er mer enn 24 timer til avtalt tid.
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Refund summary */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="text-lg">Refusjon</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span>Betalt beløp</span>
-                <span>{formatPrice(booking.totalPrice)}</span>
-              </div>
-              {cancellationFee > 0 && (
-                <div className="flex justify-between text-amber-600">
-                  <span>Avbestillingsgebyr (50%)</span>
-                  <span>-{formatPrice(cancellationFee)}</span>
-                </div>
-              )}
-              <Separator />
-              <div className="flex justify-between font-medium text-base">
-                <span>Du får tilbake</span>
-                <span className="text-green-600">{formatPrice(refundAmount)}</span>
-              </div>
-            </div>
-            <p className="text-xs text-muted-foreground mt-4">
-              Refusjonen vil bli tilbakeført til {booking.paymentMethod === "vipps" ? "Vipps" : "kortet ditt"} innen 3-5 virkedager.
-            </p>
-          </CardContent>
-        </Card>
-
-        {/* Reason */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="text-lg">Årsak til avbestilling (valgfritt)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Textarea
-              placeholder="Fortell oss gjerne hvorfor du avbestiller..."
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              rows={3}
-            />
-          </CardContent>
-        </Card>
-
-        {/* Actions */}
-        <div className="flex gap-3">
-          <Button
-            variant="outline"
-            className="flex-1"
-            onClick={() => router.back()}
-          >
-            Avbryt
-          </Button>
-          <Button
-            variant="destructive"
-            className="flex-1"
-            onClick={handleCancel}
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? "Avbestiller..." : "Bekreft avbestilling"}
-          </Button>
-        </div>
-
-        {within24Hours && (
-          <p className="text-center text-xs text-muted-foreground mt-4">
-            Ved å bekrefte godtar du at {formatPrice(cancellationFee)} trekkes som avbestillingsgebyr.
-          </p>
-        )}
-      </div>
-    </div>
+    <CancelBookingClient
+      booking={clientBooking}
+      cancellationFee={cancellationFee}
+      within24Hours={within24Hours}
+    />
   );
 }

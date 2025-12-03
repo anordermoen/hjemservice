@@ -117,7 +117,7 @@ export function ProviderCard({ provider }: ProviderCardProps) {
                 {provider.areasServed.slice(0, 3).join(", ")}
                 {provider.areasServed.length > 3 && " +"}
               </p>
-              <Link href={`/leverandor/${provider.userId}`}>
+              <Link href={`/leverandor/${(provider as { id?: string }).id || provider.userId}`}>
                 <Button size="sm">Se profil</Button>
               </Link>
             </div>

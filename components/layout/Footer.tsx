@@ -1,8 +1,19 @@
 import Link from "next/link";
 import { Separator } from "@/components/ui/separator";
-import { categories } from "@/lib/data/categories";
 
-export function Footer() {
+interface Category {
+  id: string;
+  slug: string;
+  name: string;
+  icon: string;
+  description: string;
+}
+
+interface FooterProps {
+  categories: Category[];
+}
+
+export function Footer({ categories }: FooterProps) {
   return (
     <footer className="border-t bg-muted/40">
       <div className="container mx-auto px-4 py-12">
@@ -39,8 +50,8 @@ export function Footer() {
             <h3 className="mb-4 text-sm font-semibold">Tjenester</h3>
             <ul className="space-y-3 text-sm text-muted-foreground">
               {categories.map((category) => (
-                <li key={category.id}>
-                  <Link href={`/tjenester/${category.id}`} className="hover:text-foreground transition-colors">
+                <li key={category.slug}>
+                  <Link href={`/tjenester/${category.slug}`} className="hover:text-foreground transition-colors">
                     {category.name}
                   </Link>
                 </li>

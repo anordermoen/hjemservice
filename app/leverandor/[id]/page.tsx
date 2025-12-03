@@ -6,11 +6,9 @@ import {
   Clock,
   MapPin,
   Calendar,
-  Star,
   FileCheck,
   Languages,
   Award,
-  GraduationCap,
   Globe,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -19,11 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Rating } from "@/components/common/Rating";
-import {
-  getProviderById,
-  getReviewsByProviderId,
-  providers,
-} from "@/lib/data/providers";
+import { getProviderById, getProviders } from "@/lib/db/providers";
 import { formatPrice, formatDate } from "@/lib/utils";
 
 interface ProviderPageProps {
@@ -33,14 +27,15 @@ interface ProviderPageProps {
 }
 
 export async function generateStaticParams() {
+  const providers = await getProviders();
   return providers.map((provider) => ({
-    id: provider.userId,
+    id: provider.id,
   }));
 }
 
 export async function generateMetadata({ params }: ProviderPageProps) {
   const { id } = await params;
-  const provider = getProviderById(id);
+  const provider = await getProviderById(id);
 
   if (!provider) {
     return {
@@ -56,19 +51,30 @@ export async function generateMetadata({ params }: ProviderPageProps) {
 
 export default async function ProviderPage({ params }: ProviderPageProps) {
   const { id } = await params;
-  const provider = getProviderById(id);
+  const provider = await getProviderById(id);
 
   if (!provider) {
     notFound();
   }
 
-  const reviews = getReviewsByProviderId(id);
-  const initials = `${provider.user.firstName[0]}${provider.user.lastName[0]}`;
+  const reviews = provider.reviews || [];
+  const initials = `${provider.user.firstName?.[0] || ""}${provider.user.lastName?.[0] || ""}`;
+
+  // Build availability schedule from database format
+  const schedule = {
+    sunday: provider.availability.filter((a) => a.dayOfWeek === 0).map((a) => ({ start: a.startTime, end: a.endTime })),
+    monday: provider.availability.filter((a) => a.dayOfWeek === 1).map((a) => ({ start: a.startTime, end: a.endTime })),
+    tuesday: provider.availability.filter((a) => a.dayOfWeek === 2).map((a) => ({ start: a.startTime, end: a.endTime })),
+    wednesday: provider.availability.filter((a) => a.dayOfWeek === 3).map((a) => ({ start: a.startTime, end: a.endTime })),
+    thursday: provider.availability.filter((a) => a.dayOfWeek === 4).map((a) => ({ start: a.startTime, end: a.endTime })),
+    friday: provider.availability.filter((a) => a.dayOfWeek === 5).map((a) => ({ start: a.startTime, end: a.endTime })),
+    saturday: provider.availability.filter((a) => a.dayOfWeek === 6).map((a) => ({ start: a.startTime, end: a.endTime })),
+  };
 
   // Generate next 7 available dates
-  const availableDates = [];
-  const getDayName = (date: Date): keyof typeof provider.availability.schedule => {
-    const days: (keyof typeof provider.availability.schedule)[] = [
+  const availableDates: Date[] = [];
+  const getDayName = (date: Date): keyof typeof schedule => {
+    const days: (keyof typeof schedule)[] = [
       "sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"
     ];
     return days[date.getDay()];
@@ -79,7 +85,7 @@ export default async function ProviderPage({ params }: ProviderPageProps) {
     const date = new Date(today);
     date.setDate(today.getDate() + i);
     const dayName = getDayName(date);
-    if (provider.availability.schedule[dayName]?.length > 0) {
+    if (schedule[dayName]?.length > 0) {
       availableDates.push(date);
       if (availableDates.length >= 7) break;
     }
@@ -96,7 +102,7 @@ export default async function ProviderPage({ params }: ProviderPageProps) {
               <div className="flex flex-col items-start gap-6 sm:flex-row">
                 <Avatar className="h-24 w-24 sm:h-32 sm:w-32">
                   <AvatarImage
-                    src={provider.user.avatarUrl}
+                    src={provider.user.avatarUrl || undefined}
                     alt={`${provider.user.firstName} ${provider.user.lastName}`}
                   />
                   <AvatarFallback className="text-2xl">{initials}</AvatarFallback>
@@ -371,7 +377,7 @@ export default async function ProviderPage({ params }: ProviderPageProps) {
                   ))}
                 </div>
 
-                <Link href={`/booking/${provider.userId}`}>
+                <Link href={`/booking/${provider.id}`}>
                   <Button className="w-full" size="lg">
                     Book nå
                   </Button>
@@ -388,7 +394,7 @@ export default async function ProviderPage({ params }: ProviderPageProps) {
 
       {/* Mobile sticky booking button */}
       <div className="fixed bottom-16 left-0 right-0 border-t bg-background p-4 md:hidden">
-        <Link href={`/booking/${provider.userId}`}>
+        <Link href={`/booking/${provider.id}`}>
           <Button className="w-full" size="lg">
             Book nå
           </Button>
