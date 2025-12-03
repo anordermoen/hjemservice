@@ -7,16 +7,22 @@ This guide covers how to manually test all implemented features in HjemService.
 ## Test Accounts
 
 ### Demo Customer
-- **Email:** `kunde@demo.no`
-- **Password:** `demo123`
+- **Email:** `kunde@example.com`
+- **Password:** `kunde123`
 
-### Demo Provider
-- **Email:** `leverandor@demo.no`
-- **Password:** `demo123`
+### Demo Providers
+| Email | Password | Service |
+|-------|----------|---------|
+| `maria@example.com` | `leverandor123` | Frisør |
+| `elena@example.com` | `leverandor123` | Renhold |
+| `per@example.com` | `leverandor123` | Håndverker |
+| `erik@example.com` | `leverandor123` | Elektriker |
+| `jan@example.com` | `leverandor123` | Rørlegger |
+| `kristine@example.com` | `leverandor123` | Hage |
 
 ### Demo Admin
-- **Email:** `admin@demo.no`
-- **Password:** `demo123`
+- **Email:** `admin@hjemservice.no`
+- **Password:** `admin123`
 
 ---
 
@@ -101,7 +107,7 @@ Test with any category (frisor, renhold, handverker, elektriker, rorlegger, hage
 
 ## 3. Customer Features
 
-**Login as:** `kunde@demo.no` / `demo123`
+**Login as:** `kunde@example.com` / `kunde123`
 
 ### 3.1 Customer Dashboard (`/mine-sider`)
 - [ ] Welcome message shows customer name
@@ -178,7 +184,7 @@ Requires an accepted quote:
 
 ## 4. Booking Flow
 
-**Login as:** `kunde@demo.no` / `demo123`
+**Login as:** `kunde@example.com` / `kunde123`
 
 ### 4.1 Start Booking (`/booking/[providerId]`)
 Navigate from provider profile "Book now":
@@ -212,7 +218,7 @@ Navigate from provider profile "Book now":
 
 ## 5. Quote Request Flow
 
-**Login as:** `kunde@demo.no` / `demo123`
+**Login as:** `kunde@example.com` / `kunde123`
 
 ### 5.1 Request Quote (`/tilbud/[category]`)
 Navigate from service category page "Request quote":
@@ -238,7 +244,7 @@ Navigate from service category page "Request quote":
 
 ## 6. Provider Features
 
-**Login as:** `leverandor@demo.no` / `demo123`
+**Login as:** `maria@example.com` / `leverandor123` (or any provider account)
 
 ### 6.1 Provider Dashboard (`/leverandor-portal`)
 - [ ] Stats cards show: appointments, requests, earnings, rating
@@ -291,7 +297,7 @@ Navigate from service category page "Request quote":
 
 ## 7. Admin Features
 
-**Login as:** `admin@demo.no` / `demo123`
+**Login as:** `admin@hjemservice.no` / `admin123`
 
 ### 7.1 Admin Dashboard (`/admin`)
 - [ ] Stats cards: users, providers, bookings today, revenue

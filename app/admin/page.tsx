@@ -6,11 +6,13 @@ import {
   TrendingUp,
   AlertCircle,
   ArrowRight,
+  FileCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/common/EmptyState";
 import { getAdminStats, getPendingProviders } from "@/lib/db/admin";
+import { getPendingChangeRequestsCount } from "@/lib/db/provider-changes";
 import { formatPrice } from "@/lib/utils";
 
 export const metadata = {
@@ -19,9 +21,10 @@ export const metadata = {
 };
 
 export default async function AdminDashboardPage() {
-  const [stats, pendingProviders] = await Promise.all([
+  const [stats, pendingProviders, pendingChanges] = await Promise.all([
     getAdminStats(),
     getPendingProviders(),
+    getPendingChangeRequestsCount(),
   ]);
 
   return (
@@ -93,6 +96,27 @@ export default async function AdminDashboardPage() {
               </p>
             </div>
             <Link href="/admin/godkjenning">
+              <Button size="sm" variant="outline">
+                Se alle
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      )}
+
+      {pendingChanges > 0 && (
+        <Card className="border-blue-200 bg-blue-50">
+          <CardContent className="flex items-center gap-4 p-4">
+            <FileCheck className="h-8 w-8 text-blue-600" />
+            <div className="flex-1">
+              <p className="font-medium text-blue-800">
+                {pendingChanges} leverandørendring{pendingChanges > 1 ? "er" : ""} venter på godkjenning
+              </p>
+              <p className="text-sm text-blue-600">
+                Sertifikater, språk og andre profilendringer
+              </p>
+            </div>
+            <Link href="/admin/endringer">
               <Button size="sm" variant="outline">
                 Se alle
               </Button>

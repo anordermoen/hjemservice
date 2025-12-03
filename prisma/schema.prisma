@@ -125,6 +125,7 @@ model ServiceProvider {
   bookings       Booking[]
   reviews        Review[]
   quoteResponses QuoteResponse[]
+  changeRequests ProviderChangeRequest[]
 }
 
 model ProviderSchedule {
@@ -175,6 +176,42 @@ model Certificate {
   expiresAt  DateTime?
 
   provider ServiceProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+}
+
+// ============ PROVIDER CHANGE REQUESTS ============
+
+model ProviderChangeRequest {
+  id          String                      @id @default(cuid())
+  providerId  String
+  changeType  ProviderChangeType
+  status      ProviderChangeStatus        @default(PENDING)
+  data        Json                        // The new/updated data
+  message     String?                     // Optional message from provider
+  adminNote   String?                     // Admin's note when reviewing
+  reviewedBy  String?                     // Admin user ID who reviewed
+  createdAt   DateTime                    @default(now())
+  reviewedAt  DateTime?
+
+  provider ServiceProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+}
+
+enum ProviderChangeType {
+  ADD_CERTIFICATE
+  UPDATE_CERTIFICATE
+  REMOVE_CERTIFICATE
+  ADD_LANGUAGE
+  UPDATE_LANGUAGE
+  REMOVE_LANGUAGE
+  UPDATE_POLICE_CHECK
+  UPDATE_INSURANCE
+  UPDATE_EDUCATION
+  UPDATE_BIO
+}
+
+enum ProviderChangeStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 model Service {

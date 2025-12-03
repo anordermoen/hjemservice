@@ -11,6 +11,7 @@ import {
   MessageSquare,
   Loader2,
   ShieldAlert,
+  FileCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
@@ -19,6 +20,7 @@ import { Button } from "@/components/ui/button";
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/godkjenning", label: "Godkjenning", icon: UserCheck },
+  { href: "/admin/endringer", label: "Endringer", icon: FileCheck },
   { href: "/admin/support", label: "Support", icon: MessageSquare },
   { href: "/admin/statistikk", label: "Statistikk", icon: BarChart3 },
 ];
