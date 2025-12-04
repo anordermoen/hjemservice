@@ -166,7 +166,7 @@ export default async function HomePage() {
                 Høyt rangerte fagfolk i Oslo-området
               </p>
             </div>
-            <Link href="/tjenester" className="hidden md:block">
+            <Link href="/leverandorer" className="hidden md:block">
               <Button variant="outline">
                 Se alle
                 <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
