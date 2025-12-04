@@ -32,11 +32,6 @@ export function Footer({ categories }: FooterProps) {
                   Kontakt
                 </Link>
               </li>
-              <li>
-                <Link href="/presse" className="hover:text-foreground transition-colors">
-                  Presse
-                </Link>
-              </li>
             </ul>
           </div>
 
