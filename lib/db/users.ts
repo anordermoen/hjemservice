@@ -66,6 +66,7 @@ export async function createUser(data: {
 export async function updateUserProfile(
   userId: string,
   data: {
+    email?: string;
     firstName?: string;
     lastName?: string;
     phone?: string;

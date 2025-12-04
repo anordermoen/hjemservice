@@ -3,6 +3,7 @@
 import { auth } from "@/lib/auth";
 import {
   updateUserProfile,
+  getUserByEmail,
   addAddress as dbAddAddress,
   updateAddress as dbUpdateAddress,
   deleteAddress as dbDeleteAddress,
@@ -15,12 +16,30 @@ export async function updateProfile(formData: FormData) {
     return { error: "Ikke autorisert" };
   }
 
+  const email = formData.get("email") as string;
   const firstName = formData.get("firstName") as string;
   const lastName = formData.get("lastName") as string;
   const phone = formData.get("phone") as string;
 
+  // Validate email if provided
+  if (email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return { error: "Ugyldig e-postadresse" };
+    }
+
+    // Check if email is already in use by another user
+    if (email !== session.user.email) {
+      const existingUser = await getUserByEmail(email);
+      if (existingUser && existingUser.id !== session.user.id) {
+        return { error: "E-postadressen er allerede i bruk" };
+      }
+    }
+  }
+
   try {
     await updateUserProfile(session.user.id, {
+      email: email || undefined,
       firstName: firstName || undefined,
       lastName: lastName || undefined,
       phone: phone || undefined,

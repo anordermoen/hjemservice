@@ -205,14 +205,11 @@ export function SettingsClient({ user, addresses }: SettingsClientProps) {
               <Label htmlFor="email">E-post</Label>
               <Input
                 id="email"
+                name="email"
                 type="email"
-                value={user.email}
-                disabled
-                className="mt-1 bg-muted"
+                defaultValue={user.email}
+                className="mt-1"
               />
-              <p className="mt-1 text-xs text-muted-foreground">
-                E-postadressen kan ikke endres
-              </p>
             </div>
 
             <div>
