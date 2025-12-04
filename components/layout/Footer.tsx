@@ -33,11 +33,6 @@ export function Footer({ categories }: FooterProps) {
                 </Link>
               </li>
               <li>
-                <Link href="/karriere" className="hover:text-foreground transition-colors">
-                  Karriere
-                </Link>
-              </li>
-              <li>
                 <Link href="/presse" className="hover:text-foreground transition-colors">
                   Presse
                 </Link>
