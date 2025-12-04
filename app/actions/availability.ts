@@ -82,6 +82,40 @@ export async function removeBlockedDate(dateStr: string) {
   }
 }
 
+export async function addBlockedDateRange(
+  fromDateStr: string,
+  toDateStr: string,
+  reason?: string
+) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { error: "Ikke autorisert" };
+  }
+
+  const provider = await getProviderByUserId(session.user.id);
+  if (!provider) {
+    return { error: "Leverandørprofil ikke funnet" };
+  }
+
+  try {
+    const fromDate = new Date(fromDateStr);
+    const toDate = new Date(toDateStr);
+    fromDate.setHours(0, 0, 0, 0);
+    toDate.setHours(0, 0, 0, 0);
+
+    // Block each day in the range
+    for (let d = new Date(fromDate); d <= toDate; d.setDate(d.getDate() + 1)) {
+      await dbAddBlockedDate(provider.id, new Date(d), reason);
+    }
+
+    revalidatePath("/leverandor-portal/kalender");
+    return { success: true };
+  } catch (error) {
+    console.error("Add blocked date range error:", error);
+    return { error: "Kunne ikke blokkere perioden" };
+  }
+}
+
 // Public action: Get available slots for a provider on a specific date
 export async function getAvailableSlotsForDate(
   providerId: string,
