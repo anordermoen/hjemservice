@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight, MapPin, Ban, Check, Loader2, CalendarDays } from "lucide-react";
+import { ChevronLeft, ChevronRight, MapPin, Ban, Check, Loader2, CalendarDays, Clock, Settings, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -23,8 +23,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
-import { addBlockedDate, removeBlockedDate } from "@/app/actions/availability";
+import { addBlockedDate, removeBlockedDate, updateSchedule } from "@/app/actions/availability";
 
 interface Appointment {
   id: string;
@@ -50,6 +51,7 @@ interface ProviderCalendarClientProps {
 }
 
 const dayNames = ["Man", "Tir", "Ons", "Tor", "Fre", "Lør", "Søn"];
+const fullDayNames = ["Søndag", "Mandag", "Tirsdag", "Onsdag", "Torsdag", "Fredag", "Lørdag"];
 const monthNames = [
   "Januar",
   "Februar",
@@ -81,6 +83,15 @@ export function ProviderCalendarClient({
   const [blockDialogOpen, setBlockDialogOpen] = useState(false);
   const [blockReason, setBlockReason] = useState("");
   const [monthPickerOpen, setMonthPickerOpen] = useState(false);
+  const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
+  const [editingSchedule, setEditingSchedule] = useState<ScheduleSlot[]>(schedule);
+
+  // Time options for dropdowns (30-minute intervals)
+  const timeOptions = Array.from({ length: 48 }, (_, i) => {
+    const hours = Math.floor(i / 2);
+    const minutes = i % 2 === 0 ? "00" : "30";
+    return `${String(hours).padStart(2, "0")}:${minutes}`;
+  });
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -163,25 +174,135 @@ export function ProviderCalendarClient({
     });
   };
 
+  const openScheduleDialog = () => {
+    setEditingSchedule([...schedule]);
+    setScheduleDialogOpen(true);
+  };
+
+  const getScheduleForDay = (dayOfWeek: number) => {
+    return editingSchedule.filter((s) => s.dayOfWeek === dayOfWeek);
+  };
+
+  const toggleDayActive = (dayOfWeek: number) => {
+    const daySlots = getScheduleForDay(dayOfWeek);
+    if (daySlots.length === 0) {
+      // Add default slot
+      setEditingSchedule([
+        ...editingSchedule,
+        { dayOfWeek, startTime: "09:00", endTime: "17:00", isActive: true },
+      ]);
+    } else {
+      // Toggle isActive for all slots of this day
+      const allActive = daySlots.every((s) => s.isActive);
+      setEditingSchedule(
+        editingSchedule.map((s) =>
+          s.dayOfWeek === dayOfWeek ? { ...s, isActive: !allActive } : s
+        )
+      );
+    }
+  };
+
+  const updateSlotTime = (
+    dayOfWeek: number,
+    slotIndex: number,
+    field: "startTime" | "endTime",
+    value: string
+  ) => {
+    const daySlots = getScheduleForDay(dayOfWeek);
+    let slotCount = 0;
+    setEditingSchedule(
+      editingSchedule.map((s) => {
+        if (s.dayOfWeek === dayOfWeek) {
+          if (slotCount === slotIndex) {
+            slotCount++;
+            return { ...s, [field]: value };
+          }
+          slotCount++;
+        }
+        return s;
+      })
+    );
+  };
+
+  const addSlotToDay = (dayOfWeek: number) => {
+    const daySlots = getScheduleForDay(dayOfWeek);
+    const lastSlot = daySlots[daySlots.length - 1];
+    const newStart = lastSlot ? lastSlot.endTime : "09:00";
+    const newEnd = lastSlot ? "17:00" : "17:00";
+    setEditingSchedule([
+      ...editingSchedule,
+      { dayOfWeek, startTime: newStart, endTime: newEnd, isActive: true },
+    ]);
+  };
+
+  const removeSlotFromDay = (dayOfWeek: number, slotIndex: number) => {
+    let slotCount = 0;
+    setEditingSchedule(
+      editingSchedule.filter((s) => {
+        if (s.dayOfWeek === dayOfWeek) {
+          if (slotCount === slotIndex) {
+            slotCount++;
+            return false;
+          }
+          slotCount++;
+        }
+        return true;
+      })
+    );
+  };
+
+  const handleSaveSchedule = () => {
+    startTransition(async () => {
+      // Group by day and save each day
+      const dayGroups = new Map<number, ScheduleSlot[]>();
+      for (let i = 0; i <= 6; i++) {
+        dayGroups.set(i, []);
+      }
+      editingSchedule.forEach((slot) => {
+        dayGroups.get(slot.dayOfWeek)?.push(slot);
+      });
+
+      for (const [dayOfWeek, slots] of dayGroups) {
+        await updateSchedule(
+          dayOfWeek,
+          slots.map((s) => ({
+            startTime: s.startTime,
+            endTime: s.endTime,
+            isActive: s.isActive,
+          }))
+        );
+      }
+
+      setScheduleDialogOpen(false);
+      router.refresh();
+    });
+  };
+
   return (
     <div className="grid gap-6 lg:grid-cols-3">
       {/* Calendar */}
       <Card className="lg:col-span-2">
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle>Kalender</CardTitle>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" onClick={goToPreviousMonth}>
-              <ChevronLeft className="h-4 w-4" />
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="outline" size="sm" onClick={openScheduleDialog}>
+              <Clock className="mr-2 h-4 w-4" />
+              Arbeidstider
             </Button>
-            <button
-              onClick={() => setMonthPickerOpen(true)}
-              className="min-w-[140px] text-center font-medium hover:bg-muted px-3 py-1.5 rounded-md transition-colors"
-            >
-              {monthNames[month]} {year}
-            </button>
-            <Button variant="outline" size="icon" onClick={goToNextMonth}>
-              <ChevronRight className="h-4 w-4" />
-            </Button>
+            <div className="flex items-center gap-1">
+              <Button variant="outline" size="icon" onClick={goToPreviousMonth}>
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <button
+                onClick={() => setMonthPickerOpen(true)}
+                className="min-w-[140px] text-center font-medium hover:bg-muted px-3 py-1.5 rounded-md transition-colors"
+              >
+                {monthNames[month]} {year}
+              </button>
+              <Button variant="outline" size="icon" onClick={goToNextMonth}>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -485,6 +606,130 @@ export function ProviderCalendarClient({
               Gå til i dag
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Schedule editor dialog */}
+      <Dialog open={scheduleDialogOpen} onOpenChange={setScheduleDialogOpen}>
+        <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5" />
+              Rediger arbeidstider
+            </DialogTitle>
+            <DialogDescription>
+              Angi når du er tilgjengelig for bookinger hver dag.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {[1, 2, 3, 4, 5, 6, 0].map((dayOfWeek) => {
+              const daySlots = getScheduleForDay(dayOfWeek);
+              const isActive = daySlots.length > 0 && daySlots.some((s) => s.isActive);
+
+              return (
+                <div key={dayOfWeek} className="rounded-lg border p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-3">
+                      <Switch
+                        checked={isActive}
+                        onCheckedChange={() => toggleDayActive(dayOfWeek)}
+                      />
+                      <span className={cn(
+                        "font-medium",
+                        !isActive && "text-muted-foreground"
+                      )}>
+                        {fullDayNames[dayOfWeek]}
+                      </span>
+                    </div>
+                    {isActive && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => addSlotToDay(dayOfWeek)}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+
+                  {isActive && daySlots.length > 0 && (
+                    <div className="space-y-2 ml-10">
+                      {daySlots.map((slot, slotIndex) => (
+                        <div key={slotIndex} className="flex items-center gap-2">
+                          <Select
+                            value={slot.startTime}
+                            onValueChange={(value) =>
+                              updateSlotTime(dayOfWeek, slotIndex, "startTime", value)
+                            }
+                          >
+                            <SelectTrigger className="w-24">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {timeOptions.map((time) => (
+                                <SelectItem key={time} value={time}>
+                                  {time}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <span className="text-muted-foreground">-</span>
+                          <Select
+                            value={slot.endTime}
+                            onValueChange={(value) =>
+                              updateSlotTime(dayOfWeek, slotIndex, "endTime", value)
+                            }
+                          >
+                            <SelectTrigger className="w-24">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {timeOptions.map((time) => (
+                                <SelectItem key={time} value={time}>
+                                  {time}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {daySlots.length > 1 && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                              onClick={() => removeSlotFromDay(dayOfWeek, slotIndex)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {!isActive && (
+                    <p className="text-sm text-muted-foreground ml-10">
+                      Ikke tilgjengelig
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setScheduleDialogOpen(false)}
+              disabled={isPending}
+            >
+              Avbryt
+            </Button>
+            <Button onClick={handleSaveSchedule} disabled={isPending}>
+              {isPending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : null}
+              Lagre endringer
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
