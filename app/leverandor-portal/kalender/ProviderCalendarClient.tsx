@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight, MapPin, Ban, Check, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, MapPin, Ban, Check, Loader2, CalendarDays } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +16,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { addBlockedDate, removeBlockedDate } from "@/app/actions/availability";
 
@@ -73,6 +80,7 @@ export function ProviderCalendarClient({
   const [selectedDate, setSelectedDate] = useState<string | null>(initialDate);
   const [blockDialogOpen, setBlockDialogOpen] = useState(false);
   const [blockReason, setBlockReason] = useState("");
+  const [monthPickerOpen, setMonthPickerOpen] = useState(false);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -100,6 +108,15 @@ export function ProviderCalendarClient({
   const goToNextMonth = () => {
     setCurrentDate(new Date(year, month + 1, 1));
   };
+
+  const goToMonth = (newYear: number, newMonth: number) => {
+    setCurrentDate(new Date(newYear, newMonth, 1));
+    setMonthPickerOpen(false);
+  };
+
+  // Generate year options (5 years back, 5 years forward)
+  const currentYear = new Date().getFullYear();
+  const yearOptions = Array.from({ length: 11 }, (_, i) => currentYear - 5 + i);
 
   const formatDateKey = (day: number) => {
     return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
@@ -156,9 +173,12 @@ export function ProviderCalendarClient({
             <Button variant="outline" size="icon" onClick={goToPreviousMonth}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <span className="min-w-[140px] text-center font-medium">
+            <button
+              onClick={() => setMonthPickerOpen(true)}
+              className="min-w-[140px] text-center font-medium hover:bg-muted px-3 py-1.5 rounded-md transition-colors"
+            >
               {monthNames[month]} {year}
-            </span>
+            </button>
             <Button variant="outline" size="icon" onClick={goToNextMonth}>
               <ChevronRight className="h-4 w-4" />
             </Button>
@@ -399,6 +419,72 @@ export function ProviderCalendarClient({
               Blokker dato
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Month/Year picker dialog */}
+      <Dialog open={monthPickerOpen} onOpenChange={setMonthPickerOpen}>
+        <DialogContent className="sm:max-w-[340px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CalendarDays className="h-5 w-5" />
+              Velg måned og år
+            </DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="month-select" className="text-sm text-muted-foreground">
+                  Måned
+                </Label>
+                <Select
+                  value={month.toString()}
+                  onValueChange={(value) => goToMonth(year, parseInt(value))}
+                >
+                  <SelectTrigger id="month-select" className="mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {monthNames.map((name, index) => (
+                      <SelectItem key={index} value={index.toString()}>
+                        {name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="year-select" className="text-sm text-muted-foreground">
+                  År
+                </Label>
+                <Select
+                  value={year.toString()}
+                  onValueChange={(value) => goToMonth(parseInt(value), month)}
+                >
+                  <SelectTrigger id="year-select" className="mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {yearOptions.map((y) => (
+                      <SelectItem key={y} value={y.toString()}>
+                        {y}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => {
+                const today = new Date();
+                goToMonth(today.getFullYear(), today.getMonth());
+              }}
+            >
+              Gå til i dag
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
