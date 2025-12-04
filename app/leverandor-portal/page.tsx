@@ -117,10 +117,10 @@ export default async function ProviderDashboardPage() {
 
       {/* Today's appointments */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
-            Dagens avtaler
+            <Calendar className="h-5 w-5 shrink-0" />
+            <span>Dagens avtaler</span>
           </CardTitle>
           <Link href="/leverandor-portal/kalender">
             <Button variant="ghost" size="sm">
@@ -182,12 +182,12 @@ export default async function ProviderDashboardPage() {
 
       {/* Pending requests */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5" />
-            Ventende forespørsler
+            <Clock className="h-5 w-5 shrink-0" />
+            <span>Ventende forespørsler</span>
           </CardTitle>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             {unansweredQuotes > 0 && (
               <Link href="/leverandor-portal/tilbud">
                 <Button variant="outline" size="sm">
