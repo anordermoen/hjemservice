@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-HjemService is a Norwegian home services booking platform built as a Next.js 14+ web application. Users can book verified service providers (hairdressers, cleaners, handymen, electricians, plumbers, gardeners) who come to their home.
+HjemService is a Norwegian home services booking platform built as a Next.js web application. Users can book verified service providers (hairdressers, cleaners, handymen, electricians, plumbers, gardeners) who come to their home.
 
 **UI Language:** Norwegian (Bokmål)
 **Code Language:** English
@@ -21,6 +21,12 @@ npm run start        # Start production server
 
 # Lint
 npm run lint         # Run ESLint
+
+# Database
+npm run db:migrate   # Prisma migrate dev
+npm run db:push      # Sync schema to database
+npm run db:seed      # Run seed.ts with demo data
+npm run db:studio    # Open Prisma Studio for DB inspection
 ```
 
 ## Architecture
@@ -31,6 +37,10 @@ npm run lint         # Run ESLint
 - **Styling:** Tailwind CSS 3.4
 - **Components:** shadcn/ui (Radix UI primitives)
 - **Icons:** Lucide React
+- **Database:** PostgreSQL on Neon (serverless)
+- **ORM:** Prisma
+- **Auth:** NextAuth.js v5 (beta) with Prisma Adapter
+- **File Storage:** Vercel Blob
 
 ### Directory Structure
 ```
@@ -49,22 +59,39 @@ npm run lint         # Run ESLint
   /common               # Shared components (Rating, ProviderCard, ServiceCard)
 
 /lib
-  /data                 # Mock data (categories.ts, providers.ts)
+  /db                   # Database access layer (users, providers, bookings, etc.)
+  /prisma.ts            # Prisma client singleton
+  /auth.ts              # NextAuth configuration
   /utils.ts             # Utility functions (cn, formatPrice, formatDate)
+
+/prisma
+  /schema.prisma        # Database schema
+  /seed.ts              # Seed script for demo data
 
 /types
   /index.ts             # TypeScript interfaces
 ```
 
+### Database Schema
+
+Key models in Prisma schema:
+- **Auth:** User, Account, Session, VerificationToken
+- **Business:** ServiceCategory, ServiceProvider, Service, Booking, Review
+- **Provider:** ProviderSchedule, BlockedDate, Certificate, ProviderLanguage
+- **Customer:** CustomerProfile, Address, FamilyMember
+- **Other:** QuoteRequest, QuoteResponse, SupportTicket, Subscription
+
 ### Key Patterns
 
-**Mock Data:** The app uses mock data from `/lib/data/` for demo purposes. Provider and category data is imported directly without API calls.
+**Database Access:** All database functions are in `/lib/db/` and wrapped with React's `cache()` for request-level deduplication.
+
+**Auth:** JWT-based sessions with credentials provider. Password hashing with bcrypt.
 
 **Route Groups:** Auth pages use `(auth)` route group for shared layout patterns without affecting URL structure.
 
 **Responsive Design:** Mobile-first approach. Use Tailwind's `sm:`, `md:`, `lg:` breakpoints. Mobile bottom navigation via `MobileNav` component.
 
-**Norwegian Text:** All user-facing text is in Norwegian. See `tech-spec.md` for UI text reference.
+**Norwegian Text:** All user-facing text is in Norwegian.
 
 ## Data Types
 
@@ -77,3 +104,11 @@ Core interfaces in `/types/index.ts`:
 ## Styling
 
 Uses CSS variables for theming (see `/app/globals.css`). Primary color is blue (#3B82F6). Always use `cn()` utility from `/lib/utils.ts` for conditional classes.
+
+## Environment Variables
+
+Required in `.env`:
+- `DATABASE_URL` - Neon pooled connection string
+- `DATABASE_URL_UNPOOLED` - Neon direct connection (for migrations)
+- `NEXTAUTH_SECRET` - Auth secret
+- `BLOB_READ_WRITE_TOKEN` - Vercel Blob token
